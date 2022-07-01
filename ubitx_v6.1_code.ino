@@ -29,23 +29,23 @@
 char gbuffB[30];
 char gbuffC[30];
 
-char ritOn = 0;
-char vfoActive = VFO_A;
+bool ritOn = false;
+byte vfoActive = VFO_A;
 
 unsigned long vfoA = 7150000L;
 unsigned long vfoB = 14200000L;
 unsigned long sideTone = 800;
 unsigned long usbCarrier;
 
-char isUsbVfoA = 0;
-char isUsbVfoB = 1;
+bool isUsbVfoA = false;
+bool isUsbVfoB = true;
 
 unsigned long frequency;
 unsigned long ritRxFrequency;
 unsigned long ritTxFrequency;  // frequency is the current frequency on the dial
 unsigned long firstIF = 45005000L;
 
-int cwMode = 0; // if cwMode is flipped on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
+bool cwMode = false; // if cwMode is flipped on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
 
 /* these are variables that control the keyer behaviour */
 int cwSpeed = 100;  // this is actually the dot period in milliseconds
@@ -55,20 +55,19 @@ bool Iambic_Key = true;
 
 unsigned char keyerControl = IAMBICB;
 // during CAT commands, we will freeze the display until CAT is disengaged
-unsigned char doingCAT = 0;
+// bool doingCAT = false;
 
 
 /*
    Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
 */
-boolean txCAT = false;         // turned on if the transmitting due to a CAT command
-char inTx = 0;                 // it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
-int splitOn = 0;               // working split, uses VFO B as the transmit frequency
-
-char isUSB = 0;                // upper sideband was selected, this is reset to the default for the
-                               // frequency when it crosses the frequency border of 10 MHz
-byte menuOn = 0;               // set to 1 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
-unsigned long cwTimeout = 0;   // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
+bool txCAT = false;           // turned on if the transmitting due to a CAT command
+bool inTx = false;            // it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
+bool splitOn = false;         // working split, uses VFO B as the transmit frequency
+bool isUSB = false;           // upper sideband was selected, this is reset to the default for the
+                              // frequency when it crosses the frequency border of 10 MHz
+bool menuOn = false;          // set to 1 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
+unsigned long cwTimeout = 0;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
 
 /*
@@ -177,7 +176,7 @@ void setFrequency(unsigned long f)
   //   called much less frequently than setFrequency is
 
   /*
-    if (isUSB){
+    if (isUSB) {
       si5351bx_setfreq(2, firstIF  + f);
       si5351bx_setfreq(1, firstIF + usbCarrier);
     }
@@ -219,7 +218,7 @@ void setFrequency(unsigned long f)
 void startTx(byte txMode) {
   digitalWrite(TX_RX, 1);
 
-  inTx = 1;
+  inTx = true;
 
   if (ritOn) {
     // save the current as the rx frequency
@@ -227,7 +226,7 @@ void startTx(byte txMode) {
     setTXFilters(ritTxFrequency);  // <<<--- moved from setFrequency
     setFrequency(ritTxFrequency);
   } else {
-    if (splitOn == 1) {
+    if (splitOn == true) {
       if (vfoActive == VFO_B) {
         vfoActive = VFO_A;
         isUSB = isUsbVfoA;
@@ -269,7 +268,7 @@ void startTx(byte txMode) {
 
 /* turn off TX mode */
 void stopTx() {
-  inTx = 0;
+  inTx = false;
 
   digitalWrite(TX_RX, 0);           // turn off the tx
   si5351bx_setfreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
@@ -277,7 +276,7 @@ void stopTx() {
   if (ritOn)
     setFrequency(ritRxFrequency);
   else {
-    if (splitOn == 1) {
+    if (splitOn == true) {
       // vfo Change
       if (vfoActive == VFO_B) {
         vfoActive = VFO_A;
@@ -303,7 +302,7 @@ void stopTx() {
    what the tx frequency will be
 */
 void ritEnable(unsigned long f) {
-  ritOn = 1;
+  ritOn = true;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
   ritTxFrequency = f;
@@ -313,7 +312,7 @@ void ritEnable(unsigned long f) {
 /* this is called by the RIT menu routine */
 void ritDisable() {
   if (ritOn) {
-    ritOn = 0;
+    ritOn = false;
     setFrequency(ritTxFrequency);
     updateDisplay();
   }
@@ -333,13 +332,13 @@ void checkPTT() {
   if (cwTimeout > 0)
     return;
 
-  if (digitalRead(PTT) == 0 && inTx == 0) {
+  if (digitalRead(PTT) == 0 && inTx == false) {
     startTx(TX_SSB);
 
     active_delay(50); // debounce the PTT
   }
 
-  if (digitalRead(PTT) == 1 && inTx == 1)
+  if (digitalRead(PTT) == 1 && inTx == true)
     stopTx();
 }
 
@@ -356,7 +355,7 @@ void checkButton() {
     return;
 
   // disengage any CAT work
-  doingCAT = 0;
+  // doingCAT = false;
 
   int downTime = 0;
 
@@ -451,7 +450,7 @@ void doTuning() {
   if (!s)
     return;
 
-  doingCAT = 0; // go back to manual mode if you were doing CAT
+  // doingCAT = false; // go back to manual mode if you were doing CAT
   prev_freq = frequency;
 
   if (s > 10)
@@ -505,6 +504,7 @@ void doRIT() {
 */
 void initSettings() {
   byte x;
+
   // read the settings from the eeprom and restore them
   // if the readings are off, then set defaults
   EEPROM.get(MASTER_CAL, calibration);
@@ -537,36 +537,36 @@ void initSettings() {
 
   switch (x) {
     case VFO_MODE_USB:
-      isUsbVfoA = 1;
+      isUsbVfoA = true;
       break;
 
     case VFO_MODE_LSB:
-      isUsbVfoA = 0;
+      isUsbVfoA = false;
       break;
 
     default:
       if (vfoA > 10000000l)
-        isUsbVfoA = 1;
+        isUsbVfoA = true;
       else
-        isUsbVfoA = 0;
+        isUsbVfoA = false;
   }
 
   EEPROM.get(VFO_B_MODE, x);
 
   switch (x) {
     case VFO_MODE_USB:
-      isUsbVfoB = 1;
+      isUsbVfoB = true;
       break;
 
     case VFO_MODE_LSB:
-      isUsbVfoB = 0;
+      isUsbVfoB = false;
       break;
 
     default:
       if (vfoA > 10000000l)
-        isUsbVfoB = 1;
+        isUsbVfoB = true;
       else
-        isUsbVfoB = 0;
+        isUsbVfoB = false;
   }
 
   // set the current mode
@@ -643,10 +643,10 @@ void setup()
 
   if (btnDown()) {
     doTouchCalibration();
-    isUSB = 1;
+    isUSB = true;
     setFrequency(10000000l);
     setupFreq();
-    isUSB = 0;
+    isUSB = false;
     setFrequency(7100000l);
     setupBFO();
   }

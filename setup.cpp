@@ -22,20 +22,22 @@
     - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
 */
 
-/* */
-void setupExit() {
-  menuOn = 0;
-}
-
-/* these is used by the si5351 routines in the ubitx_5351 file */
+/* these are used by the si5351 routines in the ubitx_5351 file */
 extern int32_t calibration;
 extern uint32_t si5351bx_vcoa;
+
+static int prevPuck = -1;
+
+
+/* */
+void setupExit() {
+  menuOn = false;
+}
 
 
 /* calibration */
 void setupFreq() {
   int knob = 0;
-  // int32_t prev_calibration;
 
   displayDialog("Set Frequency", "Push TUNE to Save");
 
@@ -51,19 +53,14 @@ void setupFreq() {
   displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_NAVY);
 
   displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_NAVY);
+
   // keep clear of any previous button press
   while (btnDown())
     active_delay(100);
 
   active_delay(100);
 
-  // prev_calibration = calibration;
   calibration = 0;
-
-  //  ltoa(calibration/8750, gbuffC, 10);
-  //  strcpy(gbuffB, gbuffC);
-  //  strcat(gbuffB, "Hz");
-  //  printLine2(gbuffB);
 
   while (!btnDown())
   {
@@ -71,16 +68,12 @@ void setupFreq() {
 
     if (knob != 0)
       calibration += knob * 875;
-    /*   else if (knob < 0)
-         calibration -= 875; */
     else
       continue; // don't update the frequency or the display
 
     si5351bx_setfreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
     si5351_set_calibration(calibration);
     setFrequency(frequency);
-
-    // displayRawText("Rotate to zerobeat", 20, 120, DISPLAY_CYAN, DISPLAY_NAVY);
 
     ltoa(calibration, gbuffB, 10);
     displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_NAVY, DISPLAY_WHITE);
@@ -102,9 +95,6 @@ void setupFreq() {
 /* */
 void setupBFO() {
   int knob = 0;
-  // unsigned long prevCarrier;
-
-  // prevCarrier = usbCarrier;
 
   displayDialog("Set BFO", "Press TUNE to Save");
 
@@ -129,21 +119,21 @@ void setupBFO() {
 
   EEPROM.put(USB_CAL, usbCarrier);
   si5351bx_setfreq(0, usbCarrier);
+
   setFrequency(frequency);
+
   updateDisplay();
-  menuOn = 0;
+  menuOn = false;
 }
 
 
 /* */
 void setupCwDelay() {
   int knob = 0;
-  // int prev_cw_delay;
 
   displayDialog("Set CW T/R Delay", "Press tune to Save");
 
   active_delay(500);
-  // prev_cw_delay = cwDelayTime;
 
   itoa(10 * (int)cwDelayTime, gbuffB, 10);
   strcat(gbuffB, " msec");
@@ -166,11 +156,9 @@ void setupCwDelay() {
 
   EEPROM.put(CW_DELAYTIME, cwDelayTime);
 
-
-  //  cwDelayTime = getValueByKnob(10, 1000, 50,  cwDelayTime, "CW Delay>", " msec");
-
   active_delay(500);
-  menuOn = 0;
+
+  menuOn = false;
 }
 
 
@@ -234,11 +222,11 @@ void setupKeyer() {
 
   EEPROM.put(CW_KEY_TYPE, tmp_key);
 
-  menuOn = 0;
+  menuOn = false;
 }
 
 
-/* */
+/* shows setup menu */
 void drawSetupMenu() {
   displayClear(DISPLAY_BLACK);
 
@@ -254,15 +242,13 @@ void drawSetupMenu() {
 }
 
 
-static int prevPuck = -1;
-
-
-/* */
+/* moves selection indicator */
 void movePuck(int i) {
   if (prevPuck >= 0)
     displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_NAVY);
 
   displayRect(15, 49 + (i * 30), 290, 25, DISPLAY_WHITE);
+
   prevPuck = i;
 }
 
@@ -271,7 +257,6 @@ void movePuck(int i) {
 void doSetup2() {
   int select = 0;
   int i;
-  // int btnState;
 
   drawSetupMenu();
   movePuck(select);
@@ -282,7 +267,7 @@ void doSetup2() {
 
   active_delay(50);  // debounce
 
-  menuOn = 2;
+  menuOn = true; //2;
 
   while (menuOn) {
     i = enc_read();
@@ -291,7 +276,7 @@ void doSetup2() {
       if (select + i < 60)
         select += i;
 
-      movePuck(select / 10);  // #### <<--- indented as part of 'if' above originally, going to separate ####
+      movePuck(select / 10);  // #### <<<--- indented as part of 'if' above originally, separated due to no brackets ####
     }
 
     if (i < 0 && select - i >= 0) {
@@ -322,8 +307,7 @@ void doSetup2() {
       doTouchCalibration();
     else
       break;  // exit setup was chosen
-    // setupExit();
-    // redraw
+
     drawSetupMenu();
   }
 
@@ -334,5 +318,6 @@ void doSetup2() {
   active_delay(50);
 
   checkCAT();
+
   guiUpdate();
 }

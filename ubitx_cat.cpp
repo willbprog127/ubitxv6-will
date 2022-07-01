@@ -14,36 +14,32 @@
    This is very much a work in progress. Parts of this code have been liberally
    borrowed from other GPLicensed works like hamlib.
 
-   WARNING : This is an unstable version and it has worked with fldigi,
+   WARNING: This is an unstable version and it has worked with fldigi,
    it gives time out error with WSJTX 1.8.0
 */
 
-static unsigned long rxBufferArriveTime = 0;
-static byte rxBufferCheckCount = 0;
-#define CAT_RECEIVE_TIMEOUT 500
-static byte cat[5];
-static byte insideCat = 0;
-// static byte useOpenRadioControl = 0;
-
-//for broken protocol
+/* for broken protocol */
 #define CAT_RECEIVE_TIMEOUT 500
 
-#define CAT_MODE_LSB            0x00
-#define CAT_MODE_USB            0x01
-#define CAT_MODE_CW             0x02
-#define CAT_MODE_CWR            0x03
-#define CAT_MODE_AM             0x04
-#define CAT_MODE_FM             0x08
-#define CAT_MODE_DIG            0x0A
-#define CAT_MODE_PKT            0x0C
-#define CAT_MODE_FMN            0x88
-
-#define ACK 0
+#define CAT_MODE_LSB        0x00
+#define CAT_MODE_USB        0x01
+#define CAT_MODE_CW         0x02
+#define CAT_MODE_CWR        0x03
+#define CAT_MODE_AM         0x04
+#define CAT_MODE_FM         0x08
+#define CAT_MODE_DIG        0x0A
+#define CAT_MODE_PKT        0x0C
+#define CAT_MODE_FMN        0x88
 
 unsigned int skipTimeCount = 0;
 
+static unsigned long rxBufferArriveTime = 0;
+static byte rxBufferCheckCount = 0;
+static byte cat[5];
+static bool insideCat = false;
 
-/* */
+
+/* set high nibble */
 byte setHighNibble(byte b, byte v) {
   // Clear the high nibble
   b &= 0x0f;
@@ -52,7 +48,7 @@ byte setHighNibble(byte b, byte v) {
 }
 
 
-/* */
+/* set low nibble */
 byte setLowNibble(byte b, byte v) {
   // Clear the low nibble
   b &= 0xf0;
@@ -61,13 +57,13 @@ byte setLowNibble(byte b, byte v) {
 }
 
 
-/* */
+/* get high nibble */
 byte getHighNibble(byte b) {
   return (b >> 4) & 0x0f;
 }
 
 
-/* */
+/* get low nibble */
 byte getLowNibble(byte b) {
   return b & 0x0f;
 }
@@ -130,8 +126,6 @@ unsigned long readFreq(byte * cmd) {
     (unsigned long)d1 * 100L +
     (unsigned long)d0 * 10L;
 }
-
-//void ReadEEPRom_FT817(byte fromType)
 
 
 /* catReadEEPRom */
@@ -331,12 +325,12 @@ void processCATCommand2(byte * cmd) {
 
     case 0x02:
       // split on
-      splitOn =  1;
+      splitOn = true; //1;
       break;
 
     case 0x82:
       // split off
-      splitOn = 0;
+      splitOn = false; //0;
       break;
 
     case 0x03:
@@ -353,9 +347,9 @@ void processCATCommand2(byte * cmd) {
     // set mode
     case 0x07:
       if (cmd[0] == 0x00 || cmd[0] == 0x03)
-        isUSB = 0;
+        isUSB = false;
       else
-        isUSB = 1;
+        isUSB = true;
 
       response[0] = 0x00;
       Serial.write(response, 1);
@@ -449,14 +443,14 @@ void processCATCommand2(byte * cmd) {
 }
 
 
-//int catCount = 0;
+// int catCount = 0;
 
 
-/* */
+/* check for cat commands / data */
 void checkCAT() {
   byte i;
 
-  //Check Serial Port Buffer
+  // Check Serial Port Buffer
   if (Serial.available() == 0) {      // Set Buffer Clear status
     rxBufferCheckCount = 0;
     return;
@@ -483,10 +477,10 @@ void checkCAT() {
     cat[i] = Serial.read();
 
   // this code is not re-entrant.
-  if (insideCat == 1)
+  if (insideCat == true)
     return;
 
-  insideCat = 1;
+  insideCat = true;
 
   // This routine is enabled to debug the cat protocol
   /*
@@ -501,11 +495,12 @@ void checkCAT() {
   */
 
   /*
-    if (!doingCAT){
+    if (!doingCAT) {
       doingCAT = 1;
       displayText("CAT on", 100,120,100,40, ILI9341_ORANGE, ILI9341_BLACK, ILI9341_WHITE);
     }
   */
   processCATCommand2(cat);
-  insideCat = 0;
+
+  insideCat = false;
 }

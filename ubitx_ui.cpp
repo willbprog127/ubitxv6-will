@@ -300,12 +300,12 @@ void btnDraw(struct Button * btn) {
     memset(vfoDisplay, 0, sizeof(vfoDisplay));
     displayVFO(VFO_B);
   }
-  else if ((!strcmp(btn->text, "RIT") && ritOn == 1) ||
-           (!strcmp(btn->text, "USB") && isUSB == 1) ||
-           (!strcmp(btn->text, "LSB") && isUSB == 0) ||
-           (!strcmp(btn->text, "SPL") && splitOn == 1))
+  else if ((!strcmp(btn->text, "RIT") && ritOn == true) ||
+           (!strcmp(btn->text, "USB") && isUSB == true) ||
+           (!strcmp(btn->text, "LSB") && isUSB == false) ||
+           (!strcmp(btn->text, "SPL") && splitOn == true))
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_DARKGREY);
-  else if (!strcmp(btn->text, "CW") && cwMode == 1)
+  else if (!strcmp(btn->text, "CW") && cwMode == true)
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_DARKGREY);
   else
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_GREEN, DISPLAY_BLACK, DISPLAY_DARKGREY);
@@ -606,7 +606,7 @@ int enc_prev_state = 3;
 /* */
 void ritToggle(struct Button * btn) {
 
-  if (ritOn == 0)
+  if (ritOn == false)
     ritEnable(frequency);
   else
     ritDisable();
@@ -620,9 +620,9 @@ void ritToggle(struct Button * btn) {
 void splitToggle(struct Button * btn1) {
 
   if (splitOn)
-    splitOn = 0;
+    splitOn = false;
   else
-    splitOn = 1;
+    splitOn = true;
 
   btnDraw(btn1);
 
@@ -674,10 +674,10 @@ void vfoReset() {
 
 /* */
 void cwToggle(struct Button * btn) {
-  if (cwMode == 0)
-    cwMode = 1;
+  if (cwMode == false)
+    cwMode = true;
   else
-    cwMode = 0;
+    cwMode = false;
 
   setFrequency(frequency);
   btnDraw(btn);
@@ -687,9 +687,9 @@ void cwToggle(struct Button * btn) {
 /* */
 void sidebandToggle(struct Button * btn1) {
   if (!strcmp(btn1->text, "LSB"))
-    isUSB = 0;
+    isUSB = false;
   else
-    isUSB = 1;
+    isUSB = true;
 
   struct Button btn2;
 
@@ -928,7 +928,7 @@ void doCommands() {
 
   active_delay(50);  // debounce
 
-  menuOn = 2;
+  menuOn = true; //2;
 
   while (menuOn) {
 
