@@ -307,7 +307,7 @@ void quickFill(int x1, int y1, int x2, int y2, int color) {
       ncount = 0;
     }
 
-    checkCAT();
+    // checkCAT();  // <<<--- ugh ugh ugh
   }
 
   digitalWrite(TFT_CS, HIGH);
@@ -333,16 +333,19 @@ void displayClear(unsigned int color) {
 
 
 /* */
-void displayRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int color) {
-  displayHline(x, y, w, color);
-  displayHline(x, y + h, w, color);
-  displayVline(x, y, h, color);
-  displayVline(x + w, y, h, color);
+void displayRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int hicolor, unsigned int lowcolor) {
+  if (lowcolor == 0)
+    lowcolor = hicolor;
+
+  displayHline(x, y, w, hicolor);
+  displayHline(x, y + h, w, lowcolor);
+  displayVline(x, y, h, hicolor);
+  displayVline(x + w, y, h, lowcolor);
 }
 
 
 /* */
-void displayFillrect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int color) {
+void displayFillrect(const unsigned int x, const unsigned int y, const unsigned int w, const unsigned int h, const unsigned int color) {
   //unsigned int i;
   quickFill(x, y, x + w, y + h, color);
 }
@@ -505,8 +508,9 @@ void displayChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t
     utftAddress(x + xo, y + yo + yy, x + xo + w, y + yo + yy);
     *(portOutputRegister(digitalPinToPort(TFT_RS))) |= digitalPinToBitMask(TFT_RS); // LCD_RS=1;
     SPI.transfer(vbuff, k);
-    checkCAT();
+    // checkCAT();  // <<<---
   }
+  checkCAT();
 }
 
 
@@ -554,10 +558,13 @@ void displayRawText(const char * text, int x1, int y1, int color, int background
 
 
 // The generic routine to display one line on the LCD
-void displayText(const char * text, int x1, int y1, int w, int h, int color, int background, int border) {  // <<<--- changed to const char
+void displayText(const char * text, int x1, int y1, int w, int h, unsigned int color, unsigned int background, unsigned int borderhigh, unsigned int borderlow) {  // <<<--- changed to const char
 
-  displayFillrect(x1, y1, w , h, background);
-  displayRect(x1, y1, w , h, border);
+  if (borderlow == 0)
+    borderlow = borderhigh;
+
+  displayFillrect(x1, y1, w , h, background);  // erase spot where text will be
+  displayRect(x1, y1, w , h, borderhigh, borderlow); // DISPLAY_3DBOTTOM);  // <<<--- no no, Will!!!
 
   x1 += (w - displayTextExtent(text)) / 2;
   y1  += (h - TEXT_LINE_HEIGHT) / 2;
@@ -575,12 +582,14 @@ void displayText(const char * text, int x1, int y1, int w, int h, int color, int
       if ((ww > 0) && (hh > 0)) { // Is there an associated bitmap?
         //int16_t xo = (int8_t)pgm_read_byte(&glyph->xOffset); // sic
         displayChar(x1, y1 + TEXT_LINE_HEIGHT, c, color, background);
-        checkCAT();
+        // checkCAT();  // <<<--- blebroasdflkjt
       }
 
       x1 += (uint8_t)pgm_read_byte(&glyph->xAdvance);
     }
   } // end of the while loop of the characters to be printed
+
+  checkCAT();  // <<<---
 }
 
 

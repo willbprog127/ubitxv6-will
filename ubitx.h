@@ -251,9 +251,11 @@ void switchVFO(int vfoSelect);
 int btnDown(); // returns true if the encoder button is pressed
 
 /* these functions are called universally to update the display */
-void updateDisplay(); // updates just the VFO frequency to show what is in 'frequency' variable
+// void updateDisplay();
+void displayVFO(int vfo); // updates just the VFO frequency to show what is in 'frequency' variable
+void displayVFOs();   // updates both vfos
 void redrawVFOs();    // redraws only the changed digits of the vfo
-void guiUpdate();     // repaints the entire screen. Slow!!
+void guiUpdate(bool clearScreen = false, bool refreshVFOs = false);     // repaints the entire screen. Slow!!
 void drawCommandbar(char * text);
 void drawTx();
 /*
@@ -263,7 +265,7 @@ void drawTx();
 int getValueByKnob(int minimum, int maximum, int step_size, int initial, char * prefix, char * postfix);
 
 // forward declaration of functions of the setup menu. implemented in setup.cpp
-void doSetup2(); // main setup function, displays the setup menu, calls various dialog boxes
+void doSetupMenu(); // main setup function, displays the setup menu, calls various dialog boxes
 void setupBFO();
 void setupFreq();
 

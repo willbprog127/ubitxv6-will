@@ -14,6 +14,7 @@
    and the TFT LCD display.
 */
 
+/* buttons used for changing bands, selecting new frequencies, etc */
 struct Button {
   int x;
   int y;
@@ -28,8 +29,8 @@ struct Button {
 #define MAX_BUTTONS 17
 
 const struct Button btn_set[MAX_BUTTONS] PROGMEM = {
-  {0, 10, 159, 36,  "VFOA", "A"},
-  {160, 10, 159, 36, "VFOB", "B"},
+  {0, 8, 159, 38,  "VFOA", "A"},  //  <<<--- changed y from 10, height from 36
+  {160, 8, 159, 38, "VFOB", "B"},  //  <<<--- changed y from 10, height from 36
 
   {0, 80, 60, 36,  "RIT", "R"},
   {64, 80, 60, 36, "USB", "U"},
@@ -73,9 +74,12 @@ const struct Button keypad[MAX_KEYS] PROGMEM = {
   {256, 160, 60, 36,  "Can", "C"},
 };
 
+char vfoDisplay[12];
+int enc_prev_state = 3;
+
 
 /*
-  boolean getButton(char * text, struct Button * btn) { // <<<--- changed from boolean to void
+  get button from text - text _in_,  btn _out_
 */
 void getButton(const char * text, struct Button * btn) {  // <<<--- changed to const char
   for (int i = 0; i < MAX_BUTTONS; i++) {
@@ -83,14 +87,16 @@ void getButton(const char * text, struct Button * btn) {  // <<<--- changed to c
     memcpy_P(btn, btn_set + i, sizeof(struct Button));
 
     if (!strcmp(text, btn->text))
-      return;   // <<<--- return true;
+      return;
   }
-  //return;   // <<<--- return false
 }
 
 
 /* This formats the frequency given in f */
 void formatFreq(long f, char * buff) {
+
+  // Serial.println("formatFreq");
+
   // tks Jack Purdum W8TEE
   // replaced fsprint commmands by str commands for code size reduction
 
@@ -113,10 +119,19 @@ void formatFreq(long f, char * buff) {
 }
 
 
+/* clear command text area (below VFOs and above 'standard' buttons) */
+void clearCommandbar() {
+    displayFillrect(0, 48, 320, 30, DISPLAY_WILLBACK);
+}
+
 /* */
 void drawCommandbar(char * text) {
-  displayFillrect(30, 45, 280, 32, DISPLAY_NAVY);
-  displayRawText(text, 30, 45, DISPLAY_WHITE, DISPLAY_NAVY);
+
+  // Serial.println("drawCommandbar");
+
+  //displayFillrect(30, 45, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- clearCommandbar now?
+  clearCommandbar();
+  displayRawText(text, 30, 45, DISPLAY_WHITE, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 
@@ -159,7 +174,7 @@ int getValueByKnob(int minimum, int maximum, int step_size,  int initial,
     checkCAT();
   }
 
-  displayFillrect(30, 41, 280, 32, DISPLAY_NAVY);
+  displayFillrect(30, 41, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);
   return knob_value;
 }
 
@@ -167,8 +182,10 @@ int getValueByKnob(int minimum, int maximum, int step_size,  int initial,
 /* display the frequency in the command area */
 void printCarrierFreq(unsigned long freq) {
 
-  memset(gbuffC, 0, sizeof(gbuffC));
+  // Serial.println("printCarrierFreq");
+
   memset(gbuffB, 0, sizeof(gbuffB));
+  memset(gbuffC, 0, sizeof(gbuffC));
 
   ultoa(freq, gbuffB, DEC);
 
@@ -178,7 +195,7 @@ void printCarrierFreq(unsigned long freq) {
   strcat(gbuffC, ".");
   strncat(gbuffC, &gbuffB[5], 1);
 
-  displayText(gbuffC, 110, 100, 100, 30, DISPLAY_CYAN, DISPLAY_NAVY, DISPLAY_NAVY);
+  displayText(gbuffC, 110, 100, 100, 30, DISPLAY_WILLBACK, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_CYAN, DISPLAY_NAVY, DISPLAY_NAVY);
 }
 
 
@@ -188,20 +205,18 @@ void displayDialog(const char * title, const char * instructions) {
   displayRect(10, 10, 300, 220, DISPLAY_WHITE);
   displayHline(20, 45, 280, DISPLAY_WHITE);
   displayRect(12, 12, 296, 216, DISPLAY_WHITE);
-  displayRawText(title, 20, 20, DISPLAY_CYAN, DISPLAY_NAVY);
-  displayRawText(instructions, 20, 200, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText(title, 20, 20, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  displayRawText(instructions, 20, 200, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
-
-
-char vfoDisplay[12];
 
 
 /* */
 void displayVFO(int vfo) {
+
+  // Serial.println("displayVFO");
   int x;
   int y;
   int displayColor = 0;   //   <<<--- Was not initialized originally
-  //int displayBorder;
 
   Button btn;
 
@@ -220,11 +235,9 @@ void displayVFO(int vfo) {
     if (vfoActive == VFO_A) {
       formatFreq(frequency, gbuffC + 2);
       displayColor = DISPLAY_WHITE;
-      //displayBorder = DISPLAY_BLACK;
     } else {
       formatFreq(vfoA, gbuffC + 2);
-      displayColor = DISPLAY_GREEN;
-      //displayBorder = DISPLAY_BLACK;
+      displayColor = DISPLAY_DIMGOLD; // DISPLAY_GREEN;  // <<<---
     }
   }
 
@@ -242,25 +255,32 @@ void displayVFO(int vfo) {
     if (vfoActive == VFO_B) {
       formatFreq(frequency, gbuffC + 2);
       displayColor = DISPLAY_WHITE;
-      //displayBorder = DISPLAY_WHITE;
     } else {
-      displayColor = DISPLAY_GREEN;
-      //displayBorder = DISPLAY_BLACK;
+      displayColor = DISPLAY_DIMGOLD;   // DISPLAY_GREEN; // <<<---
       formatFreq(vfoB, gbuffC + 2);
     }
   }
 
+  // black out vfo button
   if (vfoDisplay[0] == 0) {
-    displayFillrect(btn.x, btn.y, btn.w, btn.h, DISPLAY_BLACK);
 
+    uint16_t newX = btn.x - 1;
+    uint16_t newY;
+    uint16_t newW;
+    uint16_t newH;
+
+    // displayFillrect(btn.x, btn.y, btn.w, btn.h, DISPLAY_BLACK);  //  <<<---
+    displayFillrect(btn.x - 1, btn.y - 1, btn.w + 2, btn.h + 2, DISPLAY_BLACK);
+
+    // display highlight rectangle around vfo button if it's active
     if (vfoActive == vfo)
-      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WHITE);
+      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WHITE, DISPLAY_3DBOTTOM);
     else
-      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_NAVY);
+      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WILLBACK); //DISPLAY_NAVY);
   }
 
   x = btn.x + 6;
-  y = btn.y + 3;
+  y = btn.y + 6; // 3;  // <<<--- was 3
 
   char * text = gbuffC;
 
@@ -270,16 +290,19 @@ void displayVFO(int vfo) {
 
     if (digit != vfoDisplay[i]) {
 
-      displayFillrect(x, y, 15, btn.h - 6, DISPLAY_BLACK);
+      // displayFillrect(x, y, 15, btn.h - 6, DISPLAY_BLACK);  // <<<--- testing testing testing
       // checkCAT();
 
       displayChar(x, y + TEXT_LINE_HEIGHT + 3, digit, displayColor, DISPLAY_BLACK);
 
-      checkCAT();
+      // checkCAT();  //  <<<--- preoccupation with checking cat!  disabled to speed up drawing
     }
 
-    if (digit == ':' || digit == '.')
+    // if (digit == ':' || digit == '.')  // <<<--- decimal is a bit off
+    if (digit == ':')
       x += 7;
+    else if (digit == '.')
+      x += 11;
     else
       x += 16;
 
@@ -290,8 +313,22 @@ void displayVFO(int vfo) {
 }
 
 
+/* display both vfos */
+void displayVFOs() {
+
+  // Serial.println("displayVFOs");
+
+  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  displayVFO(VFO_A);
+
+  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  displayVFO(VFO_B);
+}
+
+
 /* */
 void btnDraw(struct Button * btn) {
+
   if (!strcmp(btn->text, "VFOA")) {
     memset(vfoDisplay, 0, sizeof(vfoDisplay));
     displayVFO(VFO_A);
@@ -304,32 +341,35 @@ void btnDraw(struct Button * btn) {
            (!strcmp(btn->text, "USB") && isUSB == true) ||
            (!strcmp(btn->text, "LSB") && isUSB == false) ||
            (!strcmp(btn->text, "SPL") && splitOn == true))
-    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_DARKGREY);
+    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_ORANGE, DISPLAY_ORANGE);
   else if (!strcmp(btn->text, "CW") && cwMode == true)
-    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_DARKGREY);
+    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_ORANGE, DISPLAY_ORANGE);
   else
-    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_GREEN, DISPLAY_BLACK, DISPLAY_DARKGREY);
+    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_DIMGOLD, DISPLAY_BLACK, DISPLAY_DARKGREY, DISPLAY_3DBOTTOM);  // DISPLAY_GREEN // <<<---
 }
 
 
 /* */
 void displayRIT() {
-  displayFillrect(0, 41, 320, 30, DISPLAY_NAVY);
+
+  // Serial.println("displayRIT");
+  // displayFillrect(0, 41, 320, 30, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- seems like this is done in displayText??
 
   if (ritOn) {
     strcpy(gbuffC, "TX:");
     formatFreq(ritTxFrequency, gbuffC + 3);
 
     if (vfoActive == VFO_A)
-      displayText(gbuffC, 0, 45, 159, 30, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_NAVY);
+      displayText(gbuffC, 0, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
     else
-      displayText(gbuffC, 160, 45, 159, 30, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_NAVY);
+      displayText(gbuffC, 160, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
   }
   else {
-    if (vfoActive == VFO_A)
-      displayText("", 0, 45, 159, 30, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_NAVY);
-    else
-      displayText("", 160, 45, 159, 30, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_NAVY);
+    clearCommandbar();
+    //if (vfoActive == VFO_A)
+      //displayText("", 0, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
+    //else
+      //displayText("", 160, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
   }
 }
 
@@ -338,22 +378,22 @@ void displayRIT() {
 void fastTune() {
   int encoder;
 
-  //if the btn is down, wait until it is up
+  // if the btn is down, wait until it is up
   while (btnDown())
     active_delay(50);
 
   active_delay(300);
 
-  displayRawText("Fast tune", 100, 55, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText("Fast tune", 100, 55, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   while (true) {
     checkCAT();
 
     // exit after debouncing the btnDown
     if (btnDown()) {
-      displayFillrect(100, 55, 120, 30, DISPLAY_NAVY);
+      displayFillrect(100, 55, 120, 30, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
-      //wait until the button is realsed and then return
+      // wait until the button is realsed and then return
       while (btnDown())
         active_delay(50);
 
@@ -370,7 +410,9 @@ void fastTune() {
         frequency += 50000l;
       else if (encoder < 0 && frequency > 600000l)
         frequency -= 50000l;
+
       setFrequency(frequency);
+
       displayVFO(vfoActive);
     }
   }  // end of the event loop
@@ -381,7 +423,9 @@ void fastTune() {
 void enterFreq() {
   // force the display to refresh everything
   // display all the buttons
-  // int f;    // <<<--- Uncertain if this is used further down
+
+  // int f;    // <<<--- Uncertain if this is used further down -- two scopes of
+  // 'f' shadowed originally, second 'f' changed to 'frq'
 
   for (int i = 0; i < MAX_KEYS; i++) {
     struct Button btn1;
@@ -440,7 +484,7 @@ void enterFreq() {
           gbuffC[cursor_pos] = 0;
         }
         else if (!strcmp(btn2.text, "Can")) {
-          guiUpdate();
+          guiUpdate(false, false);
           return;
         }
         else if ('0' <= btn2.text[0] && btn2.text[0] <= '9') {
@@ -452,7 +496,7 @@ void enterFreq() {
 
     strcpy(gbuffB, gbuffC);
     strcat(gbuffB, " KHz");
-    displayText(gbuffB, 0, 42, 320, 30, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_NAVY);
+    displayText(gbuffB, 0, 42, 320, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
 
     delay(300);
 
@@ -462,9 +506,12 @@ void enterFreq() {
 }
 
 
-/* */
-void drawCWStatus() {
-  displayFillrect(0, 201, 320, 39, DISPLAY_NAVY);
+/* shows info at bottom of home screen */
+void drawStatusbar() {
+
+  // Serial.println("drawStatusbar");
+
+  displayFillrect(0, 201, 320, 39, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   strcpy(gbuffB, " cw:");
   int wpm = 1200 / cwSpeed;
@@ -475,7 +522,7 @@ void drawCWStatus() {
   strcat(gbuffB, gbuffC);
   strcat(gbuffB, "hz");
 
-  displayRawText(gbuffB, 0, 210, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText(gbuffB, 0, 210, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 
@@ -484,36 +531,45 @@ void drawTx() {
   if (inTx)
     displayText("TX", 280, 48, 37, 28, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_BLUE);
   else
-    displayFillrect(280, 48, 37, 28, DISPLAY_NAVY);
+    displayFillrect(280, 48, 37, 28, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 
-/* */
-void drawStatusbar() {
-  drawCWStatus();
-}
+///* */
+//void drawStatusbar() {
+  //drawCWStatus();
+//}
 
 
 /* */
-void guiUpdate() {
+void guiUpdate(bool clearScreen, bool refreshVFOs) {
+
+  // Serial.println("guiUpdate");
 
   /*
     if (doingCAT)
       return;
   */
+
   // use the current frequency as the VFO frequency for the active VFO
-  displayClear(DISPLAY_NAVY);
+  if (clearScreen == true)
+    displayClear(DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  //else
+    //clearCommandbar();  //  <<<--- clearing in displayRIT() anyway
 
-  memset(vfoDisplay, 0, 12);   // <<<--- Why are we doing this here?
-  displayVFO(VFO_A);
+  //memset(vfoDisplay, 0, 12);
+  //displayVFO(VFO_A);
 
-  checkCAT();
+  //checkCAT();
 
-  memset(vfoDisplay, 0, 12);   // <<<--- Why are we doing this here?
-  displayVFO(VFO_B);
+  //memset(vfoDisplay, 0, 12);
+  //displayVFO(VFO_B);
+  if (refreshVFOs == true)
+    displayVFOs();
 
-  checkCAT();
+  // checkCAT();  //  <<<---
   displayRIT();
+
   checkCAT();
 
   // force the display to refresh everything
@@ -524,21 +580,21 @@ void guiUpdate() {
     memcpy_P(&btn, btn_set + i, sizeof(struct Button));
     btnDraw(&btn);
 
-    checkCAT();
+    // checkCAT();  // <<<---
   }
 
+  checkCAT();  // <<<---
   drawStatusbar();
-  checkCAT();
+
+  //checkCAT();
 }
 
 
+///* this builds up the top line of the display with frequency and mode */
+//void updateDisplay() {
+  //displayVFO(vfoActive);
+//}
 
-/* this builds up the top line of the display with frequency and mode */
-void updateDisplay() {
-  displayVFO(vfoActive);
-}
-
-int enc_prev_state = 3;
 
 /*
    The A7 And A6 are purely analog lines on the Arduino Nano
@@ -635,16 +691,20 @@ void splitToggle(struct Button * btn1) {
 
   displayRIT();
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_A);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_A);
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_B);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_B);
+  displayVFOs();
 }
 
 
 /* */
 void vfoReset() {
+
+  // Serial.println("vfoReset");
+
   Button btn;
 
   if (vfoActive == VFO_A)
@@ -662,11 +722,12 @@ void vfoReset() {
     ritToggle(&btn);
   }
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_A);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_A);
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_B);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_B);
+  displayVFOs();
 
   saveVFOs();
 }
@@ -686,10 +747,18 @@ void cwToggle(struct Button * btn) {
 
 /* */
 void sidebandToggle(struct Button * btn1) {
-  if (!strcmp(btn1->text, "LSB"))
+
+  if (!strcmp(btn1->text, "LSB")) {
+    if (isUSB == false)  //  <<<--- seems extraneous, but saves drawing time
+      return;
+
     isUSB = false;
-  else
+  } else {
+    if (isUSB == true)  //  <<<--- seems extraneous, but saves drawing time
+      return;
+
     isUSB = true;
+  }
 
   struct Button btn2;
 
@@ -706,6 +775,8 @@ void sidebandToggle(struct Button * btn1) {
 /* */
 void redrawVFOs() {
 
+  // Serial.println("redrawVFOs");  //  <<<--- test test test
+
   struct Button btn;
 
   ritDisable();
@@ -713,11 +784,12 @@ void redrawVFOs() {
   btnDraw(&btn);
   displayRIT();
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_A);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_A);
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  displayVFO(VFO_B);
+  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  //displayVFO(VFO_B);
+  displayVFOs();
 
   // draw the lsb/usb buttons, the sidebands might have changed
   getButton("LSB", &btn);
@@ -744,7 +816,8 @@ void switchBand(long bandfreq) {
   //  Serial.println(offset);
 
   setFrequency(bandfreq + offset);
-  updateDisplay();
+  //updateDisplay();  // <<<---
+  displayVFO(vfoActive);
   saveVFOs();
 }
 
@@ -807,7 +880,7 @@ void setCwTone() {
   // save the setting
   EEPROM.put(CW_SIDETONE, sideTone);
 
-  displayFillrect(30, 41, 280, 32, DISPLAY_NAVY);
+  displayFillrect(30, 41, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);
   drawStatusbar();
   //  printLine2("");
   //  updateDisplay();
@@ -829,13 +902,15 @@ void doCommand(struct Button * btn) {
     splitToggle(btn);
   else if (!strcmp(btn->text, "VFOA")) {
     if (vfoActive == VFO_A)
-      fastTune();
+      //fastTune();  // <<<--- no thank you -- too easy to trigger
+      return;
     else
       switchVFO(VFO_A);
   }
   else if (!strcmp(btn->text, "VFOB")) {
     if (vfoActive == VFO_B)
-      fastTune();
+      //fastTune();  // <<<--- no thank you -- too easy to trigger
+      return;
     else
       switchVFO(VFO_B);
   }
@@ -907,6 +982,9 @@ int btnDown() {
 
 /* */
 void drawFocus(int ibtn, int color) {
+
+  // Serial.println("drawFocus");
+
   struct Button btn;
 
   memcpy_P(&btn, btn_set + ibtn, sizeof(struct Button));

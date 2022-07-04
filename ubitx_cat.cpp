@@ -316,7 +316,8 @@ void processCATCommand2(byte * cmd) {
       // set frequency
       f = readFreq(cmd);
       setFrequency(f);
-      updateDisplay();
+      //updateDisplay();  // <<<---
+      displayVFO(vfoActive);
       response[0] = 0;
       Serial.write(response, 1);
       // sprintf(gbuffB, "set:%ld", f);
@@ -364,13 +365,15 @@ void processCATCommand2(byte * cmd) {
         response[0] = 0;
         txCAT = true;
         startTx(TX_SSB);
-        updateDisplay();
+        // updateDisplay();  // <<<---
+        displayVFO(vfoActive);
       } else {
         response[0] = 0xf0;
       }
 
       Serial.write(response, 1);
-      updateDisplay();
+      // updateDisplay();  // <<<---
+      displayVFO(vfoActive);
       break;
 
     // PTT Off
@@ -382,7 +385,8 @@ void processCATCommand2(byte * cmd) {
 
       response[0] = 0;
       Serial.write(response, 1);
-      updateDisplay();
+      // updateDisplay();  // <<<---
+      displayVFO(vfoActive);
       break;
 
     // toggle the VFOs
@@ -395,7 +399,8 @@ void processCATCommand2(byte * cmd) {
         switchVFO(VFO_A);
       // menuVfoToggle(1); // '1' forces it to change the VFO
       Serial.write(response, 1);
-      updateDisplay();
+      // updateDisplay();  // <<<---
+      displayVFO(vfoActive);
       break;
 
     // Read FT-817 EEPROM Data  (for comfirtable)  // <<--- What does 'confirtable' mean?

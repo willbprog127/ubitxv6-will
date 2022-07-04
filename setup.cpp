@@ -45,14 +45,14 @@ void setupFreq() {
   frequency = (frequency / 1000l) * 1000l;
   setFrequency(frequency);
 
-  displayRawText("You should have a", 20, 50, DISPLAY_CYAN, DISPLAY_NAVY);
-  displayRawText("signal exactly at ", 20, 75, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText("You should have a", 20, 50, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  displayRawText("signal exactly at ", 20, 75, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   ltoa(frequency / 1000l, gbuffC, 10);
   strcat(gbuffC, " KHz");
-  displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
-  displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_NAVY);
+  displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   // keep clear of any previous button press
   while (btnDown())
@@ -76,7 +76,7 @@ void setupFreq() {
     setFrequency(frequency);
 
     ltoa(calibration, gbuffB, 10);
-    displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_NAVY, DISPLAY_WHITE);
+    displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_WILLBACK, DISPLAY_WHITE); //DISPLAY_NAVY
   }
 
   EEPROM.put(MASTER_CAL, calibration);
@@ -122,7 +122,8 @@ void setupBFO() {
 
   setFrequency(frequency);
 
-  updateDisplay();
+  // updateDisplay(); // <<<---
+  displayVFO(vfoActive);
   menuOn = false;
 }
 
@@ -230,22 +231,24 @@ void setupKeyer() {
 void drawSetupMenu() {
   displayClear(DISPLAY_BLACK);
 
-  displayText("Setup", 10, 10, 300, 35, DISPLAY_WHITE, DISPLAY_NAVY, DISPLAY_WHITE);
+  // DISPLAY_NAVY
+
+  displayText("Setup", 10, 10, 300, 35, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WHITE);
   displayRect(10, 10, 300, 220, DISPLAY_WHITE);
 
-  displayRawText("Set Freq...", 30, 50, DISPLAY_WHITE, DISPLAY_NAVY);
-  displayRawText("Set BFO...", 30, 80, DISPLAY_WHITE, DISPLAY_NAVY);
-  displayRawText("CW Delay...", 30, 110, DISPLAY_WHITE, DISPLAY_NAVY);
-  displayRawText("CW Keyer...", 30, 140, DISPLAY_WHITE, DISPLAY_NAVY);
-  displayRawText("Touch Screen...", 30, 170, DISPLAY_WHITE, DISPLAY_NAVY);
-  displayRawText("Exit", 30, 200, DISPLAY_WHITE, DISPLAY_NAVY);
+  displayRawText("Set Freq...", 30, 50, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("Set BFO...", 30, 80, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("CW Delay...", 30, 110, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("CW Keyer...", 30, 140, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("Touch Screen...", 30, 170, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("Exit", 30, 200, DISPLAY_WHITE, DISPLAY_WILLBACK);
 }
 
 
 /* moves selection indicator */
 void movePuck(int i) {
   if (prevPuck >= 0)
-    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_NAVY);
+    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   displayRect(15, 49 + (i * 30), 290, 25, DISPLAY_WHITE);
 
@@ -254,7 +257,7 @@ void movePuck(int i) {
 
 
 /* */
-void doSetup2() {
+void doSetupMenu() {
   int select = 0;
   int i;
 
@@ -319,5 +322,5 @@ void doSetup2() {
 
   checkCAT();
 
-  guiUpdate();
+  guiUpdate(true);
 }

@@ -314,7 +314,8 @@ void ritDisable() {
   if (ritOn) {
     ritOn = false;
     setFrequency(ritTxFrequency);
-    updateDisplay();
+    // updateDisplay();  // <<<---
+    displayVFO(vfoActive);
   }
 }
 
@@ -365,7 +366,7 @@ void checkButton() {
     downTime++;
 
     if (downTime > 300) {
-      doSetup2();
+      doSetupMenu();
       return;
     }
   }
@@ -440,7 +441,8 @@ void doTuning() {
   unsigned long now = millis();
 
   if (now >= nextFrequencyUpdate && prev_freq != frequency) {
-    updateDisplay();
+    // updateDisplay();  //  <<<---
+    displayVFO(vfoActive);
     nextFrequencyUpdate = now + 500;
     prev_freq = frequency;
   }
@@ -492,7 +494,8 @@ void doRIT() {
 
   if (old_freq != frequency) {
     setFrequency(frequency);
-    updateDisplay();
+    // updateDisplay();  // <<<---
+    displayVFO(vfoActive);
   }
 }
 
@@ -651,8 +654,8 @@ void setup()
     setupBFO();
   }
 
-  guiUpdate();
-  displayRawText("v6.1", 270, 210, DISPLAY_LIGHTGREY, DISPLAY_NAVY);
+  guiUpdate(true, true);
+  displayRawText("v6.1", 270, 210, DISPLAY_LIGHTGREY, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 
