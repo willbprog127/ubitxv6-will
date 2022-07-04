@@ -1,4 +1,4 @@
-# ubitxv6
+# uBitx v6
 ## uBitx v6.3.1 Arduino sketch
 A fork of Ashhar Farhan's v6 sketch.  A work in progress, so be aware it may not work properly at times.  I will be customizing this to my own
 needs.  Please file an Issue if you use this and have any trouble.
@@ -12,6 +12,8 @@ Most notes and important variables are mentioned in `ubitx.h`
 * Different font than original (feel free to fork and change per your taste)
 * Command-bar text shouldn't wipe out other buttons, text, etc now
 * Code formatted to my specs (feel free to fork and change per your taste)
+
+![ubitx - 2022-07-04 screenshot-cropped](https://user-images.githubusercontent.com/1296250/177121495-059c5d6b-81ff-4742-bf74-0be9ca47e6cb.jpg)
 
 ---
 
