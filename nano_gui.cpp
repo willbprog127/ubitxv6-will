@@ -459,6 +459,7 @@ void displayInit(void) {
     @param    size_y  Font magnification level in Y-axis, 1 is 'original' size
 */
 void displayChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg) {
+  //
   c -= (uint8_t)pgm_read_byte(&gfxFont->first);
 
   GFXglyph * glyph  = pgm_read_glyph_ptr(gfxFont, c);
@@ -476,12 +477,7 @@ void displayChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t
   uint8_t bits = 0;
   uint8_t bit = 0;
 
-  //int16_t xo16 = 0;
-  //int16_t yo16 = 0;
-
   int k;
-
-  // char vbuff[64]; // take a character that is upto 32 pixels wide (2 bytes per pixel)
 
   digitalWrite(TFT_CS, LOW);
 
@@ -548,12 +544,14 @@ void displayRawText(const char * text, int x1, int y1, int color, int background
       if ((w > 0) && (h > 0)) { // Is there an associated bitmap?
         // int16_t xo = (int8_t)pgm_read_byte(&glyph->xOffset); // sic
         displayChar(x1, y1 + TEXT_LINE_HEIGHT, c, color, background);
-        checkCAT();
+        // checkCAT();  // <<<---
       }
 
       x1 += (uint8_t)pgm_read_byte(&glyph->xAdvance);
     }
   } // end of the while loop of the characters to be printed
+
+  checkCAT();
 }
 
 
@@ -567,7 +565,7 @@ void displayText(const char * text, int x1, int y1, int w, int h, unsigned int c
   displayRect(x1, y1, w , h, borderhigh, borderlow); // DISPLAY_3DBOTTOM);  // <<<--- no no, Will!!!
 
   x1 += (w - displayTextExtent(text)) / 2;
-  y1  += (h - TEXT_LINE_HEIGHT) / 2;
+  y1 += (h - TEXT_LINE_HEIGHT) / 2;
 
   while (*text) {
     char c = *text++;

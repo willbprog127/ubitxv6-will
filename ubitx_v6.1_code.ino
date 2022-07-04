@@ -608,8 +608,8 @@ void initPins() {
   pinMode(PTT, INPUT_PULLUP);
   //  pinMode(ANALOG_KEYER, INPUT_PULLUP);
 
-  pinMode(CW_TONE, OUTPUT);
-  digitalWrite(CW_TONE, 0);
+  pinMode(PIN_CW_TONE, OUTPUT);
+  digitalWrite(PIN_CW_TONE, 0);
 
   pinMode(TX_RX, OUTPUT);
   digitalWrite(TX_RX, 0);
@@ -655,7 +655,7 @@ void setup()
   }
 
   guiUpdate(true, true);
-  displayRawText("v6.1", 270, 210, DISPLAY_LIGHTGREY, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  // displayRawText("v6.1", 270, 210, DISPLAY_LIGHTGREY, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 

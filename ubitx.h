@@ -73,7 +73,7 @@
 // #define ANALOG_SPARE (A7)   // Not used yet
 
 #define TX_RX (7)           // Pin from the Nano to the radio to switch to TX (HIGH) and RX(LOW)
-#define CW_TONE (6)         // Generates a square wave sidetone while sending the CW.
+#define PIN_CW_TONE (6)         // Generates a square wave sidetone while sending the CW.
 #define TX_LPF_A (5)        // The 30 MHz LPF is permanently connected in the output of the PA...
 #define TX_LPF_B (4)        //  ...Alternatively, either 3.5 MHz, 7 MHz or 14 Mhz LPFs are...
 #define TX_LPF_C (3)        //  ...switched inline depending upon the TX frequency
@@ -118,6 +118,12 @@
 */
 extern char gbuffC[30];
 extern char gbuffB[30];
+
+/*
+   here's a special string you can use that displays at the bottom of the home screen
+   MUST be 18 characters or less!!!
+*/
+const char customString[19] = "AF7EC - Jesus rox!";
 
 /*
     The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
@@ -193,6 +199,8 @@ extern char gbuffB[30];
 #define TX_SSB 0
 #define TX_CW 1
 
+#define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
+
 extern bool ritOn;
 extern byte vfoActive;
 
@@ -219,7 +227,6 @@ extern int32_t calibration;
 extern int cwDelayTime;
 extern bool Iambic_Key;
 
-#define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
 extern unsigned char keyerControl;
 // extern unsigned char doingCAT; // during CAT commands, we will freeeze the display until CAT is disengaged
 
@@ -231,7 +238,10 @@ extern bool inTx;                // it is set to 1 if in transmit mode (whatever
 extern bool splitOn;              // working split, uses VFO B as the transmit frequency
 extern bool isUSB;               // upper sideband was selected, this is reset to the default for the
                                  // frequency when it crosses the frequency border of 10 MHz
-extern bool menuOn;              // set to 1 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
+extern bool menuOn;              // set to true when the menu is being displayed, if a menu item sets it to false, the menu is exited
+extern bool inTone;              // set to true when we're actively adjusting the cw sidetone frequency
+extern bool inValByKnob;         // set to true when valueByKnob is running
+extern bool endValByKnob;        // set to true when we want to end the valueByKnob process
 extern unsigned long cwTimeout;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
 /* forward declarations of functions implemented in the main file, ubitx_xxx.ino */

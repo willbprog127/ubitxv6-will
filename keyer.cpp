@@ -70,7 +70,7 @@ unsigned char keyerState = IDLE;
    each time it is called, the cwTimeOut is pushed further into the future
 */
 void cwKeydown() {
-  tone(CW_TONE, (int)sideTone);
+  tone(PIN_CW_TONE, (int)sideTone);
   digitalWrite(CW_KEY, 1);
 
   // Modified by KD8CEC, for CW Delay Time save to eeprom
@@ -83,7 +83,7 @@ void cwKeydown() {
    Pushes the cwTimeout further into the future
 */
 void cwKeyUp() {
-  noTone(CW_TONE);
+  noTone(PIN_CW_TONE);
   digitalWrite(CW_KEY, 0);
 
   // Modified by KD8CEC, for CW Delay Time save to eeprom

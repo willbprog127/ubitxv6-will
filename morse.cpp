@@ -91,7 +91,7 @@ static void morseLetter(char c) {
       mask = mask >> 1;
 
       while (mask) {
-        tone(CW_TONE, sideTone, 10000);
+        tone(PIN_CW_TONE, sideTone, 10000);
 
         if (mask & code) {
           delay(3 * (int)cwSpeed);
@@ -102,7 +102,7 @@ static void morseLetter(char c) {
         }
         // Serial.print('#');
 
-        noTone(CW_TONE);
+        noTone(PIN_CW_TONE);
         delay((int)cwSpeed); // space between dots and dashes
         mask = mask >> 1;
       }
@@ -116,14 +116,13 @@ static void morseLetter(char c) {
 
 /* */
 void morseText(char * text) {
-  //  while (1){
-  noTone(CW_TONE);
-  delay(1000);
-  tone(CW_TONE, 600);
-  delay(1000);
-  //  }
 
-  Serial.println(sideTone);
+  noTone(PIN_CW_TONE);
+  delay(1000);
+  tone(PIN_CW_TONE, 600);
+  delay(1000);
+
+  //Serial.println(sideTone);
 
   while (*text)
     morseLetter(*text++);
