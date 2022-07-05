@@ -15,16 +15,17 @@
 
     Below are the libraries to be included for building the Raduino
 
-    The EEPROM library is used to store settings like the frequency memory, caliberation data, etc.
+    The EEPROM library is used to store settings like the frequency memory, calibration data, etc.
 
-    The main chip which generates upto three oscillators of various frequencies in the
+    The main chip which generates up to three oscillators of various frequencies in the
     Raduino is the Si5351a. To learn more about Si5351a you can download the datasheet
     from www.silabs.com although, strictly speaking it is not a requirement to understand this code.
-    Instead, you can look up the Si5351 library written by xxx, yyy. You can download and
-    install it from www.url.com to complile this file.
 
     The Wire.h library is used to talk to the Si5351 and we also declare an instance of
     Si5351 object to control the clocks.
+
+    Some information in these files may be left-overs from earlier versions of the uBitX line.  Please
+    file an Issue on this project's github to let me know
 */
 
 #include <stdint.h>
@@ -52,12 +53,12 @@
     Note: A5, A4 are wired to the Si5351 as I2C interface
 
     Though, this can be assigned anyway, for this application of the Arduino, we will make the following
-    assignment
+    assignment:
     A2 will connect to the PTT line, which is the usually a part of the mic connector
     A3 is connected to a push button that can momentarily ground this line. This will be used for RIT/Bandswitching, etc.
     A6 is to implement a keyer, it is reserved and not yet implemented
     A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
-    ground and +5v lines available on the connector. This implments the tuning mechanism
+    ground and +5v lines available on the connector. This implements the tuning mechanism
 */
 
 
@@ -69,8 +70,8 @@
 #define ENC_B (A1)          // Tuning encoder interface
 #define FBUTTON (A2)        // Tuning encoder interface
 #define PTT   (A3)          // Sense it for ssb and as a straight key for cw operation
-#define ANALOG_KEYER (A6)   // This is used as keyer. The analog port has 4.7K pull up resistor. Details are in the circuit description on www.hfsignals.com
-// #define ANALOG_SPARE (A7)   // Not used yet
+#define ANALOG_KEYER (A6)   // This is used as keyer. The analog port has 4.7K pull up resistor.
+                            // Details are in the circuit description on www.hfsignals.com
 
 #define TX_RX (7)           // Pin from the Nano to the radio to switch to TX (HIGH) and RX(LOW)
 #define PIN_CW_TONE (6)         // Generates a square wave sidetone while sending the CW.
@@ -93,7 +94,7 @@
     7   SCK       13    13  (spi)
     6   SDI       11    11  (spi)
     5   D/C       A3    7   (changable)
-    4   RESET     A4    9 (not needed, permanently +5v)
+    4   RESET     A4    9   (not needed, permanently +5v)
     3   CS        A5    10  (changable)
     2   GND       GND
     1   VCC       VCC

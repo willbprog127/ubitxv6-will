@@ -193,6 +193,7 @@ void setFrequency(unsigned long f)
       si5351bx_setfreq(2, firstIF  + f);
 
     si5351bx_setfreq(1, firstIF + usbCarrier);
+
   } else {
     if (cwMode)
       si5351bx_setfreq(2, firstIF  + f + sideTone);

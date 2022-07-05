@@ -718,37 +718,37 @@ void splitToggle(struct Button * btn1) {
 }
 
 
-/* */
-void vfoReset() {
+///* */
+//void vfoReset() {
 
-  // Serial.println("vfoReset");
+  //// Serial.println("vfoReset");
 
-  Button btn;
+  //Button btn;
 
-  if (vfoActive == VFO_A)
-    vfoB = vfoA;
-  else
-    vfoA = vfoB;
+  //if (vfoActive == VFO_A)
+    //vfoB = vfoA;
+  //else
+    //vfoA = vfoB;
 
-  if (splitOn) {
-    getButton("SPL", &btn);
-    splitToggle(&btn);
-  }
+  //if (splitOn) {
+    //getButton("SPL", &btn);
+    //splitToggle(&btn);
+  //}
 
-  if (ritOn) {
-    getButton("RIT", &btn);
-    ritToggle(&btn);
-  }
+  //if (ritOn) {
+    //getButton("RIT", &btn);
+    //ritToggle(&btn);
+  //}
 
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_A);
+  ////memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  ////displayVFO(VFO_A);
 
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_B);
-  displayVFOs();
+  ////memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  ////displayVFO(VFO_B);
+  //displayVFOs();
 
-  saveVFOs();
-}
+  //saveVFOs();
+//}
 
 
 /* */
@@ -967,8 +967,8 @@ void doCommand(struct Button * btn) {
     else
       switchVFO(VFO_B);
   }
-  else if (!strcmp(btn->text, "A=B"))
-    vfoReset();
+  //else if (!strcmp(btn->text, "A=B"))
+    //vfoReset();
   else if (!strcmp(btn->text, "80"))
     switchBand(3500000l);
   else if (!strcmp(btn->text, "40"))
@@ -1024,7 +1024,7 @@ void checkTouch() {
 }
 
 
-/* returns true if the button is pressed */
+/* returns true if the encoder button is pressed */
 int btnDown() {
   if (digitalRead(FBUTTON) == HIGH)
     return 0;
