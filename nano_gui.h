@@ -14,6 +14,8 @@ struct Point {
 };
 extern struct Point ts_point;
 
+//
+
 /* Color definitions */
 #define DISPLAY_BLACK       0x0020  // 0x0000  // <   0,   0,   0
 #define DISPLAY_NAVY        0x000F  // <   0,   0, 123
@@ -38,6 +40,7 @@ extern struct Point ts_point;
 #define DISPLAY_WILLBACK    0x00C5  //0x10C4  //0x31C8  //0x0861  //0x0108  //0x0253
 #define DISPLAY_3DBOTTOM    0x4228  //0x52AA  //0x31A6
 
+
 void displayInit();
 void displayClear(unsigned int color);
 void displayPixel(unsigned int x, unsigned int y, unsigned int color);
@@ -51,7 +54,7 @@ void displayRawText(const char * text, int x1, int y1, int color, int background
 void displayText(const char * text, int x1, int y1, int w, int h, unsigned int color, unsigned int background, unsigned int borderhigh, unsigned int borderlow = 0);
 
 /* touch functions */
-boolean readTouch();
+bool readTouch();
 
 void doTouchCalibration();
 void scaleTouch(struct Point * p);

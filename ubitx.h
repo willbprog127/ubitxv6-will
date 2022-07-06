@@ -37,10 +37,14 @@
 /*
     We need to carefully pick assignment of pin for various purposes.
     There are two sets of completely programmable pins on the Raduino.
+
     First, on the top of the board, in line with the LCD connector is an 8-pin connector
     that is largely meant for analog inputs and front-panel control. It has a regulated 5v output,
     ground and six pins. Each of these six pins can be individually programmed
     either as an analog input, a digital input or a digital output.
+
+    This connector is marked 'CONTROLS' in the schematic.
+
     The pins are assigned as follows (left to right, display facing you):
        Pin 1 (Violet), A7, SPARE
        Pin 2 (Blue),   A6, KEYER (DATA)
@@ -59,11 +63,18 @@
     A6 is to implement a keyer, it is reserved and not yet implemented
     A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
     ground and +5v lines available on the connector. This implements the tuning mechanism
+
+    The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
+    This assignment is as follows :
+      Pin   1   2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
+           GND +5V CLK0  GND  GND  CLK1 GND  GND  CLK2  GND  D2   D3   D4   D5   D6   D7
+    These too are flexible with what you may do with them, for the Raduino, we use them to :
+    - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
+    - CW_KEY line : turns on the carrier for CW
 */
 
-
 /*
-   The ubitx is powered by an arduino nano. The pin assignment is as follows
+   The ubitx is powered by an Arduino Nano. The pin assignment is as follows
 */
 
 #define ENC_A (A0)          // Tuning encoder interface
@@ -83,39 +94,15 @@
                             // key can be up within a tx period
 
 /*
-    * pin assignments *
-    14  T_IRQ           2 std   changed
-    13  T_DOUT              (parallel to SOD/MOSI, pin 9 of display)
-    12  T_DIN               (parallel to SDI/MISO, pin 6 of display)
-    11  T_CS            9   (we need to specify this)
-    10  T_CLK               (parallel to SCK, pin 7 of display)
-    9   SDO(MSIO) 12    12  (spi)
-    8   LED       A0    8   (not needed, permanently on +3.3v) (resistor from 5v,
-    7   SCK       13    13  (spi)
-    6   SDI       11    11  (spi)
-    5   D/C       A3    7   (changable)
-    4   RESET     A4    9   (not needed, permanently +5v)
-    3   CS        A5    10  (changable)
-    2   GND       GND
-    1   VCC       VCC
-
-    The model is called tjctm24028-spi
-    it uses an ILI9341 display controller and an  XPT2046 touch controller.
-*/
-
-#define TFT_CS 10
-#define CS_PIN  8     // this is the pin to select the touch controller on spi interface
-
-/*
     The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
     We have to be very careful with variables that are declared inside the functions as they are
     created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
     if you declare large strings inside functions, they can easily exceed the capacity of the stack
     and mess up your programs.
-    We circumvent this by declaring a few global buffers as  kitchen counters where we can
+    *
+    We circumvent this by declaring a few global buffers as kitchen counters where we can
     slice and dice our strings. These strings are mostly used to control the display or handle
-    the input and output from the USB port. We must keep a count of the bytes used while reading
-    the serial port as we can easily run out of buffer space. This is done in the serial_in_count variable.
+    the input and output from the USB port.
 */
 extern char gbuffC[30];
 extern char gbuffB[30];
@@ -125,16 +112,6 @@ extern char gbuffB[30];
    MUST be 18 characters or less!!!
 */
 const char customString[19] = "AF7EC - Jesus rox!";
-
-/*
-    The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
-    This assignment is as follows :
-      Pin   1   2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
-           GND +5V CLK0  GND  GND  CLK1 GND  GND  CLK2  GND  D2   D3   D4   D5   D6   D7
-    These too are flexible with what you may do with them, for the Raduino, we use them to :
-    - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
-    - CW_KEY line : turns on the carrier for CW
-*/
 
 
 /*
@@ -223,13 +200,12 @@ extern bool cwMode;  // if cwMode is flipped on, the rx frequency is tuned down 
 /*
     these are variables that control the keyer behaviour
 */
-extern int cwSpeed; // this is actually the dot period in milliseconds
+extern uint16_t cwSpeed; // this is actually the dot period in milliseconds
 extern int32_t calibration;
-extern int cwDelayTime;
+extern uint16_t cwDelayTime;
 extern bool Iambic_Key;
 
-extern unsigned char keyerControl;
-// extern unsigned char doingCAT; // during CAT commands, we will freeeze the display until CAT is disengaged
+extern byte keyerControl;
 
 /*
    Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
@@ -246,7 +222,7 @@ extern bool endValByKnob;        // set to true when we want to end the valueByK
 extern unsigned long cwTimeout;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
 /* forward declarations of functions implemented in the main file, ubitx_xxx.ino */
-void active_delay(int delay_by);
+void active_delay(unsigned int delay_by);
 void saveVFOs();
 void setFrequency(unsigned long f);
 void startTx(byte txMode);
@@ -257,12 +233,8 @@ void checkCAT();
 void cwKeyer(void);
 void switchVFO(int vfoSelect);
 
-/* forward declarations */
-// int enc_read(void); // returns the number of ticks in a short interval, +ve in clockwise, -ve in anti-clockwise
+/* forward declarations of functions in file ubitx_ui.cpp */
 int btnDown(); // returns true if the encoder button is pressed
-
-/* these functions are called universally to update the display */
-// void updateDisplay();
 void displayVFO(int vfo); // updates just the VFO frequency to show what is in 'frequency' variable
 void displayVFOs();   // updates both vfos
 void redrawVFOs();    // redraws only the changed digits of the vfo
@@ -275,7 +247,7 @@ void drawTx();
 */
 int getValueByKnob(int minimum, int maximum, int step_size, int initial, char * prefix, char * postfix);
 
-// forward declaration of functions of the setup menu. implemented in setup.cpp
+/* forward declaration of functions in setup.cpp */
 void doSetupMenu(); // main setup function, displays the setup menu, calls various dialog boxes
 void setupBFO();
 void setupFreq();

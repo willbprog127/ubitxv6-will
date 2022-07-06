@@ -8,43 +8,67 @@
 #include "ubitx.h"
 #include "nano_gui.h"
 
-#define TFT_RS    9
+/*
+    * display panel pin assignments *
+    14  T_IRQ           2 std   changed
+    13  T_DOUT              (parallel to SOD/MOSI, pin 9 of display)
+    12  T_DIN               (parallel to SDI/MISO, pin 6 of display)
+    11  T_CS            9   (we need to specify this)
+    10  T_CLK               (parallel to SCK, pin 7 of display)
+    9   SDO(MSIO) 12    12  (spi)
+    8   LED       A0    8   (not needed, permanently on +3.3v) (resistor from 5v,
+    7   SCK       13    13  (spi)
+    6   SDI       11    11  (spi)
+    5   D/C       A3    7   (changable)
+    4   RESET     A4    9   (not needed, permanently +5v)
+    3   CS        A5    10  (changable)
+    2   GND       GND
+    1   VCC       VCC
 
-#define Z_THRESHOLD     400
-#define MSEC_THRESHOLD  3
-#define SPI_SETTING     SPISettings(2000000, MSBFIRST, SPI_MODE0)
+    The model is called tjctm24028-spi
+    it uses an ILI9341 display controller and an  XPT2046 touch controller.
+*/
 
-#define MAX_VBUFF 64
+#define TFT_CS 10
+#define CS_PIN  8     // this is the pin to select the touch controller on spi interface
+#define TFT_RS  9
 
-char vbuff[64];
+const byte maxVBuff = 64;
 
-const GFXfont * gfxFont = NULL;  // <<<--- added const
+const int16_t zThreshold = 400;
+const byte mSecThreshold = 3;
+
+const SPISettings spiSetting = SPISettings(2000000, MSBFIRST, SPI_MODE0);
+
 struct Point ts_point;
 
-/* filled from a test run of calibration routine */
+const GFXfont * gfxFont = NULL;  // <<<--- added const
+
+char vbuff[maxVBuff];
+
+/* filled later by the screen calibration routine */
 int slope_x = 104;
 int slope_y = 137;
 int offset_x = 28;
 int offset_y = 29;
 
-/* */
+static uint32_t msraw = 0x80000000;
+static int16_t xraw = 0;
+static int16_t yraw = 0;
+static int16_t zraw = 0;
+// static uint8_t rotation = 1;  //  <<<--- never assigned a value
+
+
+/* get touch calibration info from eeprom */
 void readTouchCalibration() {
   EEPROM.get(SLOPE_X, slope_x);
   EEPROM.get(SLOPE_Y, slope_y);
   EEPROM.get(OFFSET_X, offset_x);
   EEPROM.get(OFFSET_Y, offset_y);
-
-  /*
-    //for debugging
-    Serial.print(slope_x); Serial.print(' ');
-    Serial.print(slope_y); Serial.print(' ');
-    Serial.print(offset_x); Serial.print(' ');
-    Serial.println(offset_y); Serial.println(' ');
-  */
 }
 
 
-/* */
+/* write touch calibration info to eeprom */
 void writeTouchCalibration() {
   EEPROM.put(SLOPE_X, slope_x);
   EEPROM.put(SLOPE_Y, slope_y);
@@ -52,15 +76,10 @@ void writeTouchCalibration() {
   EEPROM.put(OFFSET_Y, offset_y);
 }
 
-static uint32_t msraw = 0x80000000;
-static int16_t xraw = 0;
-static int16_t yraw = 0;
-static int16_t zraw = 0;
-static uint8_t rotation = 1;
-
 
 /* */
-static int16_t touch_besttwoavg( int16_t x , int16_t y , int16_t z ) {
+static int16_t touch_besttwoavg(int16_t x , int16_t y , int16_t z) {
+
   int16_t da;
   int16_t db;
   int16_t dc;
@@ -85,7 +104,7 @@ static int16_t touch_besttwoavg( int16_t x , int16_t y , int16_t z ) {
     reta = (x + y) >> 1;
   else if (db <= da && db <= dc)
     reta = (x + z) >> 1;
-  else reta = (y + z) >> 1;   //    else if ( dc <= da && dc <= db ) reta = (x + y) >> 1;
+  else reta = (y + z) >> 1;
 
   return (reta);
 }
@@ -97,86 +116,87 @@ static void touch_update() {
 
   uint32_t now = millis();
 
-  if (now - msraw < MSEC_THRESHOLD)
+  if (now - msraw < mSecThreshold)
     return;
 
-  SPI.beginTransaction(SPI_SETTING);
+  SPI.beginTransaction(spiSetting); // SPI_SETTING);
   digitalWrite(CS_PIN, LOW);
-  SPI.transfer(0xB1 /* Z1 */);
+  SPI.transfer(0xB1);  // Z1
 
-  int16_t z1 = SPI.transfer16(0xC1 /* Z2 */) >> 3;
+  int16_t z1 = SPI.transfer16(0xC1) >> 3; // Z2
   int z = z1 + 4095;
   int16_t z2 = SPI.transfer16(0x91 /* X */) >> 3;
 
   z -= z2;
 
-  if (z >= Z_THRESHOLD) {
-    SPI.transfer16(0x91 /* X */);  // dummy X measure, 1st is always noisy
+  if (z >= zThreshold) {
+    SPI.transfer16(0x91);  // dummy X measure, 1st is always noisy
 
-    data[0] = SPI.transfer16(0xD1 /* Y */) >> 3;
-    data[1] = SPI.transfer16(0x91 /* X */) >> 3; // make 3 x-y measurements
-    data[2] = SPI.transfer16(0xD1 /* Y */) >> 3;
-    data[3] = SPI.transfer16(0x91 /* X */) >> 3;
+    data[0] = SPI.transfer16(0xD1) >> 3;  // Y
+    data[1] = SPI.transfer16(0x91) >> 3;  // X
+    data[2] = SPI.transfer16(0xD1) >> 3;  // Y
+    data[3] = SPI.transfer16(0x91) >> 3;  // X
   } else
     data[0] = data[1] = data[2] = data[3] = 0; // Compiler warns these values may be used unset on early exit.
 
-  data[4] = SPI.transfer16(0xD0 /* Y */) >> 3;  // Last Y touch power down
+  data[4] = SPI.transfer16(0xD0) >> 3;  // Last Y touch power down
   data[5] = SPI.transfer16(0) >> 3;
 
   digitalWrite(CS_PIN, HIGH);
   SPI.endTransaction();
-  // Serial.printf("z=%d  ::  z1=%d,  z2=%d  ", z, z1, z2);
 
   if (z < 0)
     z = 0;
 
-  if (z < Z_THRESHOLD) { // if ( !touched ) {
-    // Serial.println();
+  if (z < zThreshold) {
     zraw = 0;
     return;
   }
+
   zraw = z;
 
-  int16_t x = touch_besttwoavg( data[0], data[2], data[4] );
-  int16_t y = touch_besttwoavg( data[1], data[3], data[5] );
+  int16_t x = touch_besttwoavg(data[0], data[2], data[4]);
+  int16_t y = touch_besttwoavg(data[1], data[3], data[5]);
 
-  // Serial.printf("    %d,%d", x, y);
-  // Serial.println();
-  if (z >= Z_THRESHOLD) {
-    msraw = now;  // good read completed, set wait
+  // good read completed, set wait
+  if (z >= zThreshold) {
+    msraw = now;
 
-    switch (rotation) {
-      case 0:
-        xraw = 4095 - y;
-        yraw = x;
-        break;
+    // most of the following commented out because 'rotation' is
+    // never assigned a value besides the '1' initialization!
 
-      case 1:
+    //switch (rotation) {
+      //case 0:
+        //xraw = 4095 - y;
+        //yraw = x;
+        //break;
+
+      //case 1:
         xraw = x;
         yraw = y;
-        break;
+        //break;
 
-      case 2:
-        xraw = y;
-        yraw = 4095 - x;
-        break;
+      //case 2:
+        //xraw = y;
+        //yraw = 4095 - x;
+        //break;
 
-      default: // 3
-        xraw = 4095 - x;
-        yraw = 4095 - y;
-    }
+      //default: // 3
+        //xraw = 4095 - x;
+        //yraw = 4095 - y;
+    //}
   }
 }
 
 
 /* */
-boolean readTouch() {
+bool readTouch() {
+
   touch_update();
 
-  if (zraw >= Z_THRESHOLD) {
+  if (zraw >= zThreshold) {
     ts_point.x = xraw;
     ts_point.y = yraw;
-    //    Serial.print(ts_point.x); Serial.print(",");Serial.println(ts_point.y);
     return true;
   }
 
@@ -188,10 +208,6 @@ boolean readTouch() {
 void scaleTouch(struct Point * p) {
   p->x = ((long)(p->x - offset_x) * 10l) / (long)slope_x;
   p->y = ((long)(p->y - offset_y) * 10l) / (long)slope_y;
-
-  // Serial.print(p->x); Serial.print(",");Serial.println(p->y);
-
-  //  p->y = ((long)(p->y) * 10l)/(long)(slope_y) - offset_y;
 }
 
 
@@ -250,24 +266,25 @@ inline static void utftData(unsigned char VH) {
 
 /* */
 static void utftAddress(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
-  utftCmd(0x2a);
+
+  utftCmd(0x2a);  // column address set
+
   utftData(x1 >> 8);
   utftData(x1);
   utftData(x2 >> 8);
   utftData(x2);
-  utftCmd(0x2b);
+  utftCmd(0x2b);  // page address set
+
   utftData(y1 >> 8);
   utftData(y1);
   utftData(y2 >> 8);
   utftData(y2);
-  utftCmd(0x2c);
+  utftCmd(0x2c);  // memory write
 }
 
 
 /* */
 void displayPixel(unsigned int x, unsigned int y, unsigned int color) {
-  //unsigned int i;
-  //unsigned int j;
 
   digitalWrite(TFT_CS, LOW);
 
@@ -282,6 +299,7 @@ void displayPixel(unsigned int x, unsigned int y, unsigned int color) {
 
 /* */
 void quickFill(int x1, int y1, int x2, int y2, int color) {
+
   unsigned long ncount = (unsigned long)(x2 - x1 + 1) * (unsigned long)(y2 - y1 + 1);
   int k = 0;
 
@@ -294,14 +312,14 @@ void quickFill(int x1, int y1, int x2, int y2, int color) {
   while (ncount) {
     k = 0;
 
-    for (int i = 0; i < MAX_VBUFF / 2; i++) {
+    for (int i = 0; i < maxVBuff / 2; i++) {
       vbuff[k++] = color >> 8;
       vbuff[k++] = color & 0xff;
     }
 
-    if (ncount > MAX_VBUFF / 2) {
-      SPI.transfer(vbuff, MAX_VBUFF);
-      ncount -= MAX_VBUFF / 2;
+    if (ncount > maxVBuff / 2) {
+      SPI.transfer(vbuff, maxVBuff);
+      ncount -= maxVBuff / 2;
     } else {
       SPI.transfer(vbuff, (int)ncount * 2);
       ncount = 0;
@@ -309,6 +327,8 @@ void quickFill(int x1, int y1, int x2, int y2, int color) {
 
     // checkCAT();  // <<<--- ugh ugh ugh
   }
+
+  checkCAT();
 
   digitalWrite(TFT_CS, HIGH);
 }
@@ -334,6 +354,7 @@ void displayClear(unsigned int color) {
 
 /* */
 void displayRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int hicolor, unsigned int lowcolor) {
+
   if (lowcolor == 0)
     lowcolor = hicolor;
 
@@ -346,13 +367,11 @@ void displayRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h,
 
 /* */
 void displayFillrect(const unsigned int x, const unsigned int y, const unsigned int w, const unsigned int h, const unsigned int color) {
-  //unsigned int i;
   quickFill(x, y, x + w, y + h, color);
 }
 
 
 /* */
-//bool xpt2046_Init() {   // <<<--- Was originally bool, changed to void
 void xpt2046_Init() {
   pinMode(CS_PIN, OUTPUT);
   digitalWrite(CS_PIN, HIGH);

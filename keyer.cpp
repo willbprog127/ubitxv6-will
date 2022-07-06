@@ -95,7 +95,7 @@ void cwKeyUp() {
     test to reduce the keying error. do not delete lines
     created by KD8CEC for compatible with new CW Logic
 */
-char update_PaddleLatch(byte isUpdateKeyState) {
+byte update_PaddleLatch(byte isUpdateKeyState) {
   unsigned char tmpKeyerControl = 0;
 
   uint16_t paddle = analogRead(ANALOG_KEYER);  // <<<--- changed from int to uint16_t because docs
@@ -227,7 +227,7 @@ void cwKeyer(void) {
   }
   else {
     while (1) {
-      char state = update_PaddleLatch(0);
+      byte state = update_PaddleLatch(0);
       // Serial.println((int)state);
       if (state == DIT_L) {
         // if we are here, it is only because the key is pressed

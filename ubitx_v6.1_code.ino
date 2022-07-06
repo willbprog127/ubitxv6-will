@@ -23,8 +23,7 @@
 
     We circumvent this by declaring a couple of global buffers as kitchen counters where we can
     slice and dice our strings. These strings are mostly used to control the display or handle
-    the input and output from the USB port. We must keep a count of the bytes used while reading
-    the serial port as we can easily run out of buffer space. This is done in the serial_in_count variable.
+    the input and output from the USB port.
 */
 char gbuffB[30];
 char gbuffC[30];
@@ -48,15 +47,12 @@ unsigned long firstIF = 45005000L;
 bool cwMode = false; // if cwMode is flipped on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
 
 /* these are variables that control the keyer behaviour */
-int cwSpeed = 100;  // this is actually the dot period in milliseconds
+uint16_t cwSpeed = 100;  // this is actually the dot period in milliseconds
 int32_t calibration = 0;
-int cwDelayTime = 60;
+uint16_t cwDelayTime = 60;
 bool Iambic_Key = true;
 
-unsigned char keyerControl = IAMBICB;
-// during CAT commands, we will freeze the display until CAT is disengaged
-// bool doingCAT = false;
-
+byte keyerControl = IAMBICB;
 
 /*
    Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
@@ -78,7 +74,7 @@ unsigned long cwTimeout = 0;  // milliseconds to go before the cw transmit line 
 /*
    Our own delay. During any delay, the raduino should still be processing a few times.
 */
-void active_delay(int delay_by) {
+void active_delay(unsigned int delay_by) {
   unsigned long timeStart = millis();
 
   while (millis() - timeStart <= (unsigned long)delay_by) {
@@ -272,7 +268,7 @@ void stopTx() {
   inTx = false;
 
   digitalWrite(TX_RX, 0);           // turn off the tx
-  si5351bx_setfreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
+  si5351bx_setfreq(0, usbCarrier);  // set back the carrier oscillator, cw tx switches it off
 
   if (ritOn)
     setFrequency(ritRxFrequency);
@@ -466,7 +462,7 @@ void doTuning() {
     frequency += 200l * s;
   else if (s < -5)
     frequency += 100l * s;
-  else if (s  < 0)
+  else if (s < 0)
     frequency += 50l * s;
 
   if (prev_freq < 10000000l && frequency > 10000000l)
@@ -483,7 +479,6 @@ void doTuning() {
    RIT only steps back and forth by 100 hz at a time
 */
 void doRIT() {
-  // unsigned long newFreq;
 
   int knob = enc_read();
   unsigned long old_freq = frequency;
@@ -507,6 +502,7 @@ void doRIT() {
    variables.
 */
 void initSettings() {
+
   byte x;
 
   // read the settings from the eeprom and restore them
@@ -656,7 +652,6 @@ void setup()
   }
 
   guiUpdate(true, true);
-  // displayRawText("v6.1", 270, 210, DISPLAY_LIGHTGREY, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 

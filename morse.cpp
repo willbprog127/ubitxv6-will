@@ -13,7 +13,7 @@
    The first zero after the 1s indicates the start of the letter, it MUST be discarded
 */
 
-extern int cwSpeed;
+extern uint16_t cwSpeed;
 
 struct Morse {
   char letter;
