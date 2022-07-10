@@ -5,182 +5,183 @@
 */
 
 #include <EEPROM.h>
-#include "morse.h"
+// #include "morse.h"
 #include "ubitx.h"
 #include "nano_gui.h"
 
 /*
-   The user interface of the ubitx consists of the encoder, the push-button within it
-   and the TFT LCD display.
+   The user interface of the ubitx consists of the encoder, the encoder's push-button
+   and the TFT LCD display including the display's touch controller.
 */
 
-/* buttons used for changing bands, selecting new frequencies, etc */
+/* buttons used for changing bands, selecting new frequencies, RIT, CW, etc */
 struct Button {
-  int x;
-  int y;
-  int w;
-  int h;
+
+  int16_t x;
+  int16_t y;
+  uint16_t w;
+  uint16_t h;
 
   const char * text;
-  const char * morse;
+  // const char * morse;  // Removed because Morse button function disabled from factory
+};
+
+const uint8_t maxButtons = 17;
+
+const struct Button buttons[maxButtons] PROGMEM = {
+  // Morse letters removed because Morse button function disabled from factory
+  {0, 8, 159, 38,  "A"},  // , "A"},  //  <<<--- changed y from 10, height from 36
+  {160, 8, 159, 38, "B"},  // , "B"},  //  <<<--- changed y from 10, height from 36
+
+  {0, 80, 60, 36,  "RIT"},  // , "R"},
+  {64, 80, 60, 36, "USB"},  // , "U"},
+  {128, 80, 60, 36, "LSB"},  // , "L"},
+  {192, 80, 60, 36, "CW"},  // , "M"},
+  {256, 80, 60, 36, "SPL"},  // , "S"},
+
+  {0, 120, 60, 36, "80"},  // , "8"},
+  {64, 120, 60, 36, "40"},  // , "4"},
+  {128, 120, 60, 36, "30"},  // , "3"},
+  {192, 120, 60, 36, "20"},  // , "2"},
+  {256, 120, 60, 36, "17"},  // , "7"},
+
+  {0, 160, 60, 36, "15"},  // , "5"},
+  {64, 160, 60, 36, "10"},  // , "1"},
+  {128, 160, 60, 36, "WPM"},  // , "W"},
+  {192, 160, 60, 36, "TON"},  // , "T"},
+  {256, 160, 60, 36, "FRQ"}  // , "F"},
 };
 
 
-#define MAX_BUTTONS 17
+const uint8_t maxKeys = 15;
 
-const struct Button btn_set[MAX_BUTTONS] PROGMEM = {
-  {0, 8, 159, 38,  "VFOA", "A"},  //  <<<--- changed y from 10, height from 36
-  {160, 8, 159, 38, "VFOB", "B"},  //  <<<--- changed y from 10, height from 36
+const struct Button keypad[maxKeys] PROGMEM = {
+  {0, 80, 60, 36,  "1"},  // , "1"},
+  {64, 80, 60, 36, "2"},  // , "2"},
+  {128, 80, 60, 36, "3"},  // , "3"},
+  {192, 80, 60, 36,  ""},  // , ""},
+  {256, 80, 60, 36,  "OK"},  // , "K"},
 
-  {0, 80, 60, 36,  "RIT", "R"},
-  {64, 80, 60, 36, "USB", "U"},
-  {128, 80, 60, 36, "LSB", "L"},
-  {192, 80, 60, 36, "CW", "M"},
-  {256, 80, 60, 36, "SPL", "S"},
+  {0, 120, 60, 36,  "4"},  // , "4"},
+  {64, 120, 60, 36,  "5"},  // , "5"},
+  {128, 120, 60, 36,  "6"},  // , "6"},
+  {192, 120, 60, 36,  "0"},  // , "0"},
+  {256, 120, 60, 36,  "<-"},  // , "B"},
 
-  {0, 120, 60, 36, "80", "8"},
-  {64, 120, 60, 36, "40", "4"},
-  {128, 120, 60, 36, "30", "3"},
-  {192, 120, 60, 36, "20", "2"},
-  {256, 120, 60, 36, "17", "7"},
-
-  {0, 160, 60, 36, "15", "5"},
-  {64, 160, 60, 36, "10", "1"},
-  {128, 160, 60, 36, "WPM", "W"},
-  {192, 160, 60, 36, "TON", "T"},
-  {256, 160, 60, 36, "FRQ", "F"},
-};
-
-
-#define MAX_KEYS 15  // <<<--- changed from 17 to 15 because there's only 15 items
-
-const struct Button keypad[MAX_KEYS] PROGMEM = {
-  {0, 80, 60, 36,  "1", "1"},
-  {64, 80, 60, 36, "2", "2"},
-  {128, 80, 60, 36, "3", "3"},
-  {192, 80, 60, 36,  "", ""},
-  {256, 80, 60, 36,  "OK", "K"},
-
-  {0, 120, 60, 36,  "4", "4"},
-  {64, 120, 60, 36,  "5", "5"},
-  {128, 120, 60, 36,  "6", "6"},
-  {192, 120, 60, 36,  "0", "0"},
-  {256, 120, 60, 36,  "<-", "B"},
-
-  {0, 160, 60, 36,  "7", "7"},
-  {64, 160, 60, 36, "8", "8"},
-  {128, 160, 60, 36, "9", "9"},
-  {192, 160, 60, 36,  "", ""},
-  {256, 160, 60, 36,  "Can", "C"},
+  {0, 160, 60, 36,  "7"},  // , "7"},
+  {64, 160, 60, 36, "8"},  // , "8"},
+  {128, 160, 60, 36, "9"},  // , "9"},
+  {192, 160, 60, 36,  ""},  // , ""},
+  {256, 160, 60, 36,  "Can"}  // , "C"},
 };
 
 char vfoDisplay[12];
-int enc_prev_state = 3;
+
 bool inTone = false;
 bool inValByKnob = false;
 bool endValByKnob = false;
 
 
-/* */
-void btnDraw(struct Button * btn) {
+/* draw one button on the screen and set its attributes */
+void btnDraw(Button * btn) {
 
-  if (!strcmp(btn->text, "VFOA")) {
+  // vfoA
+  if (!strcmp(btn->text, "A")) {
     memset(vfoDisplay, 0, sizeof(vfoDisplay));
     displayVFO(VFO_A);
   }
-  else if (!strcmp(btn->text, "VFOB")) {
+  // vfoB
+  else if (!strcmp(btn->text, "B")) {
     memset(vfoDisplay, 0, sizeof(vfoDisplay));
     displayVFO(VFO_B);
   }
-  else if ((!strcmp(btn->text, "RIT") && ritOn == true) ||
-           (!strcmp(btn->text, "USB") && isUSB == true) ||
-           (!strcmp(btn->text, "LSB") && isUSB == false) ||
-           (!strcmp(btn->text, "SPL") && splitOn == true) ||
-           (!strcmp(btn->text, "TON") && inTone == true) ||
-           (!strcmp(btn->text, "WPM") && inValByKnob == true) )
-    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_ORANGE, DISPLAY_ORANGE);
-  else if (!strcmp(btn->text, "CW") && cwMode == true)
+  // and the rest... (Gilligan's Island reference omitted)
+  else if ((!strcmp(btn->text, "RIT") && ritOn == true)       ||
+           (!strcmp(btn->text, "USB") && isUSB == true)       ||
+           (!strcmp(btn->text, "LSB") && isUSB == false)      ||
+           (!strcmp(btn->text, "SPL") && splitOn == true)     ||
+           (!strcmp(btn->text, "TON") && inTone == true)      ||
+           (!strcmp(btn->text, "WPM") && inValByKnob == true) ||
+           (!strcmp(btn->text, "CW")  && cwMode == true) )
+    // display 'reverse' button, indicating an 'on' or 'enabled' condition
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_ORANGE, DISPLAY_ORANGE);
   else
+    // display normal button
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_DIMGOLD, DISPLAY_BLACK, DISPLAY_DARKGREY, DISPLAY_3DBOTTOM);  // DISPLAY_GREEN // <<<---
 }
 
 
 /*
-  get button from text - text _in_,  btn _out_
+  get button from text - 'searchText' is input, 'btn' is output
 */
-void getButton(const char * text, struct Button * btn) {  // <<<--- changed to const char
-  for (int i = 0; i < MAX_BUTTONS; i++) {
+void getButton(const char * searchText, Button * btn) {  // <<<--- changed to const char
 
-    memcpy_P(btn, btn_set + i, sizeof(struct Button));
+  for (uint8_t i = 0; i < maxButtons; i++) {
 
-    if (!strcmp(text, btn->text))
+    memcpy_P(btn, buttons + i, sizeof(Button));  // copy button from PROGMEM
+
+    if (!strcmp(searchText, btn->text))
       return;
   }
 }
 
 
-/* This formats the frequency given in f */
-void formatFreq(long f, char * buff) {
+/* formats the frequency given in f */
+void formatFreq(uint32_t f, char * buffOut) {
 
-  // Serial.println("formatFreq");
-
-  // tks Jack Purdum W8TEE
+  // thanks Jack Purdum W8TEE
   // replaced fsprint commmands by str commands for code size reduction
 
-  memset(buff, 0, 11);  // <<<--- was buff, 0, 10
+  memset(buffOut, 0, 11);  // <<<--- was buff, 0, 10
   memset(gbuffB, 0, sizeof(gbuffB));
 
   ultoa(f, gbuffB, DEC);
 
-  // one mhz digit if less than 10 M, two digits if more
+  // one MHz digit if less than 10 MHz, two digits if more
   if (f < 10000000l) {
-    buff[0] = ' ';
-    strncat(buff, gbuffB, 4);
-    strcat(buff, ".");
-    strncat(buff, &gbuffB[4], 2);
+    buffOut[0] = ' ';
+    strncat(buffOut, gbuffB, 4);
+    strcat(buffOut, ".");
+    strncat(buffOut, &gbuffB[4], 2);
   } else {
-    strncat(buff, gbuffB, 5);
-    strcat(buff, ".");
-    strncat(buff, &gbuffB[5], 2);
+    strncat(buffOut, gbuffB, 5);
+    strcat(buffOut, ".");
+    strncat(buffOut, &gbuffB[5], 2);
   }
 }
 
 
-/* clear command text area (below VFOs and above 'standard' buttons) */
+/* clear command area (area below VFOs and above 'standard' buttons) */
 void clearCommandbar() {
     displayFillrect(0, 48, 320, 30, DISPLAY_WILLBACK);
 }
 
-/* */
+
+/* draws text in the command area (area below VFOs and above 'standard' buttons) */
 void drawCommandbar(char * text) {
-
-  // Serial.println("drawCommandbar");
-
-  //displayFillrect(30, 45, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- clearCommandbar now?
   clearCommandbar();
   displayRawText(text, 30, 53, DISPLAY_WHITE, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 }
 
 
 /* A generic control to read variable values */
-int getValueByKnob(int minimum, int maximum, int step_size,  int initial,
-    const char * prefix, const char * postfix, struct Button * btn = NULL) {  // <<<--- added const to pre and post
-  //
+int16_t getValueByKnob(int16_t minimum, int16_t maximum, int16_t stepSize,  int16_t initial,
+    const char * prefix, const char * postfix, Button * btn = NULL) {  // <<<--- added const to pre and post
+
   inValByKnob = true;
 
-  int knob = 0;
-  int knob_value;
+  int16_t knob = 0;
+  int16_t knobValue;
 
-  while (btnDown())
-    active_delay(100);
+  while (encoderButtonDown())
+    activeDelay(100);
 
-  active_delay(200);
+  activeDelay(200);
 
-  knob_value = initial;
+  knobValue = initial;
 
   strcpy(gbuffB, prefix);
-  itoa(knob_value, gbuffC, 10);
+  itoa(knobValue, gbuffC, 10);
   strcat(gbuffB, gbuffC);
   strcat(gbuffB, postfix);
   drawCommandbar(gbuffB);
@@ -188,18 +189,18 @@ int getValueByKnob(int minimum, int maximum, int step_size,  int initial,
   if (btn != NULL)
     btnDraw(btn);
 
-  while (!btnDown() && digitalRead(PTT) == HIGH && endValByKnob == false) {
+  while (!encoderButtonDown() && digitalRead(PTT) == HIGH && endValByKnob == false) {
 
-      knob = enc_read();
+      knob = encoderRead();
 
       if (knob != 0) {
-        if (knob_value > minimum && knob < 0)
-          knob_value -= step_size;
-        if (knob_value < maximum && knob > 0)
-          knob_value += step_size;
+        if (knobValue > minimum && knob < 0)
+          knobValue -= stepSize;
+        if (knobValue < maximum && knob > 0)
+          knobValue += stepSize;
 
         strcpy(gbuffB, prefix);
-        itoa(knob_value, gbuffC, 10);
+        itoa(knobValue, gbuffC, 10);
         strcat(gbuffB, gbuffC);
         strcat(gbuffB, postfix);
         drawCommandbar(gbuffB);
@@ -209,21 +210,19 @@ int getValueByKnob(int minimum, int maximum, int step_size,  int initial,
       checkCAT();
   }
 
-  //displayFillrect(30, 41, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);
   clearCommandbar();
+
   inValByKnob = false;
 
   if (btn != NULL)
     btnDraw(btn);
 
-  return knob_value;
+  return knobValue;
 }
 
 
 /* display the frequency in the command area */
-void printCarrierFreq(unsigned long freq) {
-
-  // Serial.println("printCarrierFreq");
+void printCarrierFreq(uint32_t freq) {
 
   memset(gbuffB, 0, sizeof(gbuffB));
   memset(gbuffC, 0, sizeof(gbuffC));
@@ -240,7 +239,7 @@ void printCarrierFreq(unsigned long freq) {
 }
 
 
-/* */
+/* displays 'dialog' text for setup menus */
 void displayDialog(const char * title, const char * instructions) {
   displayClear(DISPLAY_BLACK);
   displayRect(10, 10, 300, 220, DISPLAY_WHITE);
@@ -251,18 +250,17 @@ void displayDialog(const char * title, const char * instructions) {
 }
 
 
-/* */
-void displayVFO(int vfo) {
+/* display one vfo, depending on which is passed in */
+void displayVFO(uint8_t vfo) {  // was int vfo
 
-  // Serial.println("displayVFO");
-  int x;
-  int y;
-  int displayColor = 0;   //   <<<--- Was not initialized originally
+  int16_t x;
+  int16_t y;
+  uint16_t displayColor = 0;   //   <<<--- Was not initialized originally
 
   Button btn;
 
   if (vfo == VFO_A) {
-    getButton("VFOA", &btn);
+    getButton("A", &btn);
 
     if (splitOn) {
       if (vfoActive == VFO_A)
@@ -283,7 +281,7 @@ void displayVFO(int vfo) {
   }
 
   if (vfo == VFO_B) {
-    getButton("VFOB", &btn);
+    getButton("B", &btn);
 
     if (splitOn) {
       if (vfoActive == VFO_B)
@@ -314,16 +312,15 @@ void displayVFO(int vfo) {
       displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WILLBACK); //DISPLAY_NAVY);
   }
 
-  byte cleanWidth = 16;
-  byte cleanHeight = 22;
+  uint8_t cleanWidth = 16;
+  uint8_t cleanHeight = 22;
 
   x = btn.x + 6;
-  y = btn.y + 6; // 3;  // <<<--- was 3
+  y = btn.y + 6;  // <<<--- was 3
 
   char * text = gbuffC;
 
-  // for (int i = 0; i <= strlen(gbuffC); i++) {  // <<<--- Was int originally, now uint16_t
-  for (uint16_t i = 0; i <= strlen(gbuffC); i++) {
+  for (uint16_t i = 0; i <= strlen(gbuffC); i++) {  // was int
     char digit = gbuffC[i];
 
     if (digit != vfoDisplay[i]) {
@@ -332,7 +329,7 @@ void displayVFO(int vfo) {
       displayFillrect(x, y, cleanWidth, cleanHeight, DISPLAY_BLACK);   // <<<--- was x, y, 15, btn.h - 6
       // checkCAT();
 
-      displayChar(x, y + TEXT_LINE_HEIGHT + 3, digit, displayColor, DISPLAY_BLACK);
+      displayChar(x, y + textLineHeight + 3, digit, displayColor, DISPLAY_BLACK);
 
       // checkCAT();  //  <<<--- preoccupation with checking cat!  disabled to speed up drawing
     }
@@ -355,21 +352,16 @@ void displayVFO(int vfo) {
 /* display both vfos */
 void displayVFOs() {
 
-  // Serial.println("displayVFOs");
-
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  memset(vfoDisplay, 0, sizeof(vfoDisplay));
   displayVFO(VFO_A);
 
-  memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
+  memset(vfoDisplay, 0, sizeof(vfoDisplay));
   displayVFO(VFO_B);
 }
 
 
-/* */
+/* displays the RIT TX frequency with horizontal position depending on which VFO is active */
 void displayRIT() {
-
-  // Serial.println("displayRIT");
-  // displayFillrect(0, 41, 320, 30, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- seems like this is done in displayText??
 
   if (ritOn) {
     memset(gbuffC, 0, sizeof(gbuffC));
@@ -377,49 +369,47 @@ void displayRIT() {
     formatFreq(ritTxFrequency, gbuffC + 3);
 
     if (vfoActive == VFO_A)
+      // show rit info on left side when vfoA is active
       displayText(gbuffC, 0, 48, 165, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);  //  <<<--- was gbuffC, 0, 45, 159, 30
     else
+      // show rit info on right side when vfoB is active
       displayText(gbuffC, 153, 48, 165, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
   }
-  else {
+  else
     clearCommandbar();
-    //if (vfoActive == VFO_A)
-      //displayText("", 0, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
-    //else
-      //displayText("", 160, 45, 159, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
-  }
 }
 
 
-///* */
+/* fastTune() is disabled because I don't like it :-P */
+///* tunes fast */
 //void fastTune() {
-  //int encoder;
+  //int16_t encoder;
 
   //// if the btn is down, wait until it is up
-  //while (btnDown())
-    //active_delay(50);
+  //while (encoderButtonDown())
+    //activeDelay(50);
 
-  //active_delay(300);
+  //activeDelay(300);
 
   //displayRawText("Fast tune", 100, 55, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   //while (true) {
     //checkCAT();
 
-    //// exit after debouncing the btnDown
-    //if (btnDown()) {
+    //// exit after debouncing the encoderButtonDown
+    //if (encoderButtonDown()) {
       //displayFillrect(100, 55, 120, 30, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
       //// wait until the button is realsed and then return
-      //while (btnDown())
-        //active_delay(50);
+      //while (encoderButtonDown())
+        //activeDelay(50);
 
-      //active_delay(300);
+      //activeDelay(300);
 
       //return;
     //}
 
-    //encoder = enc_read();
+    //encoder = encoderRead();
 
     //if (encoder != 0) {
 
@@ -438,21 +428,17 @@ void displayRIT() {
 
 /* */
 void enterFreq() {
-  // force the display to refresh everything
-  // display all the buttons
 
-  // int f;    // <<<--- Uncertain if this is used further down -- two scopes of
-  // 'f' shadowed originally, second 'f' changed to 'frq'
-
-  for (int i = 0; i < MAX_KEYS; i++) {
-    struct Button btn1;
-    memcpy_P(&btn1, keypad + i, sizeof(struct Button));
+  // display number-pad buttons
+  for (int8_t i = 0; i < maxKeys; i++) {
+    Button btn1;
+    memcpy_P(&btn1, keypad + i, sizeof(Button));
     btnDraw(&btn1);
   }
 
-  int cursor_pos = 0;
+  int16_t cursor_pos = 0;
+
   memset(gbuffC, 0, sizeof(gbuffC));
-  // f = frequency / 1000l;    // <<<--- Uncertain if this is used further down
 
   while (true) {
     checkCAT();
@@ -460,25 +446,26 @@ void enterFreq() {
     if (!readTouch())
       continue;
 
-    scaleTouch(&ts_point);
+    scaleTouch(&tsPoint);
 
-    // int total = sizeof(btn_set) / sizeof(struct Button);
+    for (uint8_t i = 0; i < maxKeys; i++) {
+      Button btn2;
+      memcpy_P(&btn2, keypad + i, sizeof(Button));
 
-    for (int i = 0; i < MAX_KEYS; i++) {
-      struct Button btn2;
-      memcpy_P(&btn2, keypad + i, sizeof(struct Button));
+      int16_t x2 = btn2.x + btn2.w;
+      int16_t y2 = btn2.y + btn2.h;
 
-      int x2 = btn2.x + btn2.w;
-      int y2 = btn2.y + btn2.h;
+      if (btn2.x < tsPoint.x && tsPoint.x < x2 &&
+          btn2.y < tsPoint.y && tsPoint.y < y2) {
 
-      if (btn2.x < ts_point.x && ts_point.x < x2 &&
-          btn2.y < ts_point.y && ts_point.y < y2) {
-
+        // we're done
         if (!strcmp(btn2.text, "OK")) {
           long frq = atol(gbuffC);
 
+          // update the frequency if entered value is valid
           if (30000 >= frq && frq > 100) {
             frequency = frq * 1000l;
+
             setFrequency(frequency);
 
             if (vfoActive == VFO_A)
@@ -489,9 +476,12 @@ void enterFreq() {
             saveVFOs();
           }
 
+          // redraw screen, only refresh vfos
           guiUpdate(false, true);
-          return;
+
+          return;  // get out
         }
+        // delete last number
         else if (!strcmp(btn2.text, "<-")) {
           gbuffC[cursor_pos] = 0;
 
@@ -500,10 +490,14 @@ void enterFreq() {
 
           gbuffC[cursor_pos] = 0;
         }
+        // cancel
         else if (!strcmp(btn2.text, "Can")) {
+          // redraw screen, only refresh vfos
           guiUpdate(false, false);
-          return;
+
+          return;  // get out
         }
+        // valid number 0 through 9
         else if ('0' <= btn2.text[0] && btn2.text[0] <= '9') {
           gbuffC[cursor_pos++] = btn2.text[0];
           gbuffC[cursor_pos] = 0;
@@ -511,6 +505,7 @@ void enterFreq() {
       }
     } // end of the button scanning loop
 
+    // display frequency entered so far -- if any
     strcpy(gbuffB, gbuffC);
     strcat(gbuffB, " KHz");
     displayText(gbuffB, 0, 48, 320, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
@@ -520,18 +515,20 @@ void enterFreq() {
     while (readTouch())
       checkCAT();
   } // end of event loop : while(true)
+
+  // we should never reach this spot!!
 }
 
 
 /* shows info at bottom of home screen */
 void drawStatusbar() {
 
-  // Serial.println("drawStatusbar");
-
   displayFillrect(0, 201, 320, 40, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- 0, 201, 320, 39,...
 
+  // i don't care for the following info at the bottom of my screen, but feel free to re-enable it
+
   //strcpy(gbuffB, " cw:");
-  //int wpm = 1200 / cwSpeed;
+  //int16_t wpm = 1200 / cwSpeed;
   //itoa(wpm, gbuffC, 10);
   //strcat(gbuffB, gbuffC);
   //strcat(gbuffB, "wpm, ");
@@ -544,7 +541,7 @@ void drawStatusbar() {
 }
 
 
-/* */
+/* show TX indicator when transmitting */
 void drawTx() {
   if (inTx)
     displayText("TX", 280, 48, 37, 28, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_BLUE);
@@ -553,52 +550,30 @@ void drawTx() {
 }
 
 
-///* */
-//void drawStatusbar() {
-  //drawCWStatus();
-//}
-
-
-/* */
+/* (re)draws home screen, optionally clearing the whole screen and/or refreshing vfos */
 void guiUpdate(bool clearScreen, bool refreshVFOs) {
-
-  // Serial.println("guiUpdate");
-
-  /*
-    if (doingCAT)
-      return;
-  */
 
   // use the current frequency as the VFO frequency for the active VFO
   if (clearScreen == true)
     displayClear(DISPLAY_WILLBACK); //DISPLAY_NAVY);
-  //else
-    //clearCommandbar();  //  <<<--- clearing in displayRIT() anyway
 
-  //memset(vfoDisplay, 0, 12);
-  //displayVFO(VFO_A);
-
-  //checkCAT();
-
-  //memset(vfoDisplay, 0, 12);
-  //displayVFO(VFO_B);
   if (refreshVFOs == true)
     displayVFOs();
 
-  // checkCAT();  //  <<<---
+  // checkCAT();  //  <<<--- get out of here!
   displayRIT();
 
   checkCAT();
 
   // force the display to refresh everything
   // display all the buttons
-  for (int i = 0; i < MAX_BUTTONS; i++) {
-    struct Button btn;
+  for (uint8_t i = 0; i < maxButtons; i++) {
+    Button btn;
 
-    memcpy_P(&btn, btn_set + i, sizeof(struct Button));
+    memcpy_P(&btn, buttons + i, sizeof(Button));
     btnDraw(&btn);
 
-    // checkCAT();  // <<<---
+    // checkCAT();  // <<<--- really, GET OUT!!! :-P
   }
 
   checkCAT();  // <<<---
@@ -608,182 +583,92 @@ void guiUpdate(bool clearScreen, bool refreshVFOs) {
 }
 
 
-///* this builds up the top line of the display with frequency and mode */
-//void updateDisplay() {
-  //displayVFO(vfoActive);
-//}
+/* toggles RIT mode */
+void ritToggle(Button * btn) {
 
-
-/*
-   The A7 And A6 are purely analog lines on the Arduino Nano
-   These need to be pulled up externally using two 10 K resistors
-
-   There are excellent pages on the Internet about how these encoders work
-   and how they should be used. We have elected to use the simplest way
-   to use these encoders without the complexity of interrupts etc to
-   keep it understandable.
-
-   The enc_state returns a two-bit number such that each bit reflects the current
-   value of each of the two phases of the encoder
-
-   The enc_read returns the number of net pulses counted over 50 msecs.
-   If the puluses are -ve, they were anti-clockwise, if they are +ve, the
-   were in the clockwise directions. Higher the pulses, greater the speed
-   at which the enccoder was spun
-*/
-/*
-  byte enc_state (void) {
-    //Serial.print(digitalRead(ENC_A)); Serial.print(":");Serial.println(digitalRead(ENC_B));
-    return (digitalRead(ENC_A) == 1 ? 1 : 0) + (digitalRead(ENC_B) == 1 ? 2: 0);
-  }
-
-  int enc_read(void) {
-  int result = 0;
-  byte newState;
-  int enc_speed = 0;
-
-  long stop_by = millis() + 200;
-
-  while (millis() < stop_by) { // check if the previous state was stable
-    newState = enc_state(); // Get current state
-
-  //    if (newState != enc_prev_state)
-  //      active_delay(20);
-
-    if (enc_state() != newState || newState == enc_prev_state)
-      continue;
-    //these transitions point to the encoder being rotated anti-clockwise
-    if ((enc_prev_state == 0 && newState == 2) ||
-      (enc_prev_state == 2 && newState == 3) ||
-      (enc_prev_state == 3 && newState == 1) ||
-      (enc_prev_state == 1 && newState == 0)){
-        result--;
-      }
-    //these transitions point o the enccoder being rotated clockwise
-    if ((enc_prev_state == 0 && newState == 1) ||
-      (enc_prev_state == 1 && newState == 3) ||
-      (enc_prev_state == 3 && newState == 2) ||
-      (enc_prev_state == 2 && newState == 0)){
-        result++;
-      }
-    enc_prev_state = newState; // Record state for next pulse interpretation
-    enc_speed++;
-    active_delay(1);
-  }
-  //if (result)
-  //  Serial.println(result);
-  return(result);
-  }
-*/
-
-
-/* */
-void ritToggle(struct Button * btn) {
-
+  // toggle rit status
   if (ritOn == false)
     ritEnable(frequency);
   else
     ritDisable();
 
+  // draw the rit button
   btnDraw(btn);
+
+  // draw rit TX frequency, if rit enabled
   displayRIT();
 }
 
 
-/* */
-void splitToggle(struct Button * btn1) {
+/* toggles split mode */
+void splitToggle(Button * btn1) {
 
   if (splitOn)
     splitOn = false;
   else
     splitOn = true;
 
+  // draw split button
   btnDraw(btn1);
 
-  // disable rit as well
+  // disable rit
   ritDisable();
 
-  struct Button btn2;
+  Button btn2;
   getButton("RIT", &btn2);
+
+  // draw disabled rit button
   btnDraw(&btn2);
 
+  // this will clear rit text from command area
+  // when rit is disabled
   displayRIT();
 
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_A);
-
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_B);
+  // refresh vfos
   displayVFOs();
 }
 
 
-///* */
-//void vfoReset() {
+/* toggles CW mode */
+void cwToggle(Button * btn) {
 
-  //// Serial.println("vfoReset");
-
-  //Button btn;
-
-  //if (vfoActive == VFO_A)
-    //vfoB = vfoA;
-  //else
-    //vfoA = vfoB;
-
-  //if (splitOn) {
-    //getButton("SPL", &btn);
-    //splitToggle(&btn);
-  //}
-
-  //if (ritOn) {
-    //getButton("RIT", &btn);
-    //ritToggle(&btn);
-  //}
-
-  ////memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  ////displayVFO(VFO_A);
-
-  ////memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  ////displayVFO(VFO_B);
-  //displayVFOs();
-
-  //saveVFOs();
-//}
-
-
-/* */
-void cwToggle(struct Button * btn) {
   if (cwMode == false)
     cwMode = true;
   else
     cwMode = false;
 
   setFrequency(frequency);
+
+  // redraw CW button with new status
   btnDraw(btn);
 }
 
 
-/* */
-void sidebandToggle(struct Button * btn1) {
+/* switch between the two sidebands (lower or upper) */
+void sidebandToggle(Button * btn1) {
 
   if (!strcmp(btn1->text, "LSB")) {
-    if (isUSB == false)  //  <<<--- seems extraneous, but saves drawing time
+    if (isUSB == false)  //  <<<--- keep - seems extraneous, but saves drawing time overall
       return;
 
     isUSB = false;
   } else {
-    if (isUSB == true)  //  <<<--- seems extraneous, but saves drawing time
+    if (isUSB == true)  //  <<<--- keep - seems extraneous, but saves drawing time overall
       return;
 
     isUSB = true;
   }
 
-  struct Button btn2;
+  Button btn2;
 
   getButton("USB", &btn2);
+
+  // redraw USB button with new status
   btnDraw(&btn2);
 
   getButton("LSB", &btn2);
+
+  // redraw LSB button with new status
   btnDraw(&btn2);
 
   saveVFOs();
@@ -793,20 +678,14 @@ void sidebandToggle(struct Button * btn1) {
 /* */
 void redrawVFOs() {
 
-  // Serial.println("redrawVFOs");  //  <<<--- test test test
-
-  struct Button btn;
-
   ritDisable();
+
+  Button btn;
   getButton("RIT", &btn);
   btnDraw(&btn);
+
   displayRIT();
 
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_A);
-
-  //memset(vfoDisplay, 0, sizeof(vfoDisplay));   // <<<--- Why are we doing this here?
-  //displayVFO(VFO_B);
   displayVFOs();
 
   // draw the lsb/usb buttons, the sidebands might have changed
@@ -818,12 +697,11 @@ void redrawVFOs() {
 }
 
 
-/* */
-void switchBand(long bandfreq) {
-  long offset;
+/* switch to a new band */
+void switchBand(uint32_t bandfreq) {
 
-  //  Serial.println(frequency);
-  //  Serial.println(bandfreq);
+  uint32_t offset;
+
   if (3500000l <= frequency && frequency <= 4000000l)
     offset = frequency - 3500000l;
   else if (24800000l <= frequency && frequency <= 25000000l)
@@ -831,25 +709,22 @@ void switchBand(long bandfreq) {
   else
     offset = frequency % 1000000l;
 
-  //  Serial.println(offset);
-
   setFrequency(bandfreq + offset);
-  //updateDisplay();  // <<<---
 
   memset(vfoDisplay, 0, sizeof(vfoDisplay));  // set to clear whole vfo button
 
   displayVFO(vfoActive);
+
   saveVFOs();
 }
 
 
-/* */
-// int setCwSpeed() {  // <<<--- Was int, changed to void
-void setCwSpeed() {
-  // int knob = 0;
+/* set CW keyer speed */
+void setCwSpeed() {  // <<<--- Was int, changed to void
+
   uint16_t wpm;  // <<<--- was int
 
-  struct Button btn;
+  Button btn;
   getButton("WPM", &btn);
 
   if (inValByKnob == false) {
@@ -864,42 +739,42 @@ void setCwSpeed() {
 
   cwSpeed = 1200 / wpm;
 
+  // store new value in eeprom
   EEPROM.put(CW_SPEED, cwSpeed);
 
-  active_delay(500);
-
-  // drawStatusbar();  // <<<--- not needed anymore
-  //    printLine2("");
-  //    updateDisplay();
+  activeDelay(500);
 }
 
 
-/* */
+/* set the side-tone frequency */
 void setCwTone() {
-    int knob = 0;
+
+    int16_t knob = 0;
+
     bool oneTime = false;
-   // int prev_sideTone;
+
+    Button btn;
+    getButton("TON", &btn);
 
     if (inTone == true) {
         inTone = false;
 
-        struct Button btn;
-        getButton("TON", &btn);
+        // draw TON button as OFF / standard
         btnDraw(&btn);
 
         checkCAT();
-        active_delay(20);
+        activeDelay(20);
 
     } else {
         inTone = true;
 
-        struct Button btn;
-        getButton("TON", &btn);
+        // draw TON button as ON
         btnDraw(&btn);
 
-        // disable all clock 1 and clock 2  // <<<--- what!?  no clocks changed here...?
-        while (digitalRead(PTT) == HIGH && !btnDown() && inTone) { // <<<---
-            knob = enc_read();
+        // loop, checking for encoder, encoder button and inTone changes
+        while (digitalRead(PTT) == HIGH && !encoderButtonDown() && inTone) {
+
+            knob = encoderRead();
 
             if (knob > 0 && sideTone < 2000)
                 sideTone += 10;
@@ -912,36 +787,31 @@ void setCwTone() {
             }
 
             oneTime = true;
+
             tone(PIN_CW_TONE, sideTone);
+
             itoa(sideTone, gbuffC, 10);
             strcpy(gbuffB, "CW Tone: ");
             strcat(gbuffB, gbuffC);
             strcat(gbuffB, " Hz");
             drawCommandbar(gbuffB);
-            //printLine2(gbuffB);
 
             checkCAT();
-            active_delay(20);
+            activeDelay(20);
         }
-
     }
 
     noTone(PIN_CW_TONE);
 
-    // save the setting
+    // store new value in eeprom
     EEPROM.put(CW_SIDETONE, sideTone);
 
     clearCommandbar();
-
-    //displayFillrect(30, 41, 280, 32, DISPLAY_WILLBACK); //DISPLAY_NAVY);  // <<<--- clearCommandbar now??
-    // drawStatusbar();  // <<<--- not used for this anymore
-    //  printLine2("");
-    //  updateDisplay();
 }
 
 
-/* */
-void doCommand(struct Button * btn) {
+/* do appropriate action based on the button passed in */
+void doCommand(Button * btn) {
 
   if (!strcmp(btn->text, "RIT"))
     ritToggle(btn);
@@ -953,22 +823,20 @@ void doCommand(struct Button * btn) {
     cwToggle(btn);
   else if (!strcmp(btn->text, "SPL"))
     splitToggle(btn);
-  else if (!strcmp(btn->text, "VFOA")) {
+  else if (!strcmp(btn->text, "A")) {
     if (vfoActive == VFO_A)
       //fastTune();  // <<<--- no thank you -- too easy to trigger
       return;
     else
       switchVFO(VFO_A);
   }
-  else if (!strcmp(btn->text, "VFOB")) {
+  else if (!strcmp(btn->text, "B")) {
     if (vfoActive == VFO_B)
       //fastTune();  // <<<--- no thank you -- too easy to trigger
       return;
     else
       switchVFO(VFO_B);
   }
-  //else if (!strcmp(btn->text, "A=B"))
-    //vfoReset();
   else if (!strcmp(btn->text, "80"))
     switchBand(3500000l);
   else if (!strcmp(btn->text, "40"))
@@ -994,7 +862,9 @@ void doCommand(struct Button * btn) {
 }
 
 
-/* */
+/*
+  run the correct command based on which button on the screen was touched
+*/
 void checkTouch() {
 
   if (!readTouch())
@@ -1003,72 +873,65 @@ void checkTouch() {
   while (readTouch())
     checkCAT();
 
-  scaleTouch(&ts_point);
+  scaleTouch(&tsPoint);
 
-  /* //debug code
-    Serial.print(ts_point.x); Serial.print(' ');Serial.println(ts_point.y);
-  */
-  // int total = sizeof(btn_set) / sizeof(struct Button);
+  // if a touch is on a button, run the correct action for it
+  for (uint8_t i = 0; i < maxButtons; i++) {
+    Button btn;
+    memcpy_P(&btn, buttons + i, sizeof(Button));
 
-  for (int i = 0; i < MAX_BUTTONS; i++) {
-    struct Button btn;
-    memcpy_P(&btn, btn_set + i, sizeof(struct Button));
+    int16_t x2 = btn.x + btn.w;
+    int16_t y2 = btn.y + btn.h;
 
-    int x2 = btn.x + btn.w;
-    int y2 = btn.y + btn.h;
-
-    if (btn.x < ts_point.x && ts_point.x < x2 &&
-        btn.y < ts_point.y && ts_point.y < y2)
+    if (btn.x < tsPoint.x && tsPoint.x < x2 &&
+        btn.y < tsPoint.y && tsPoint.y < y2)
       doCommand(&btn);
   }
 }
 
 
 /* returns true if the encoder button is pressed */
-int btnDown() {
+bool encoderButtonDown() {  // was int
+
   if (digitalRead(FBUTTON) == HIGH)
-    return 0;
+    return false;  // 0;
   else
-    return 1;
+    return true;  // 1;
 }
 
 
-/* */
-void drawFocus(int ibtn, int color) {
+/* draw focus rectangle around button */
+void drawFocus(uint8_t ibtn, uint16_t color) {  // was int ibtn
 
-  // Serial.println("drawFocus");
+  Button btn;
 
-  struct Button btn;
-
-  memcpy_P(&btn, btn_set + ibtn, sizeof(struct Button));
+  memcpy_P(&btn, buttons + ibtn, sizeof(Button));
 
   displayRect(btn.x, btn.y, btn.w, btn.h, color);
 }
 
 
-/* */
+/* click button on home screen with encoder button */
 void doCommands() {
-  int select = 0;
-  int i;
-  int prevButton = 0;  //  <<<--- Not initialized originally
-  int btnState;
+
+  int16_t select = 0;
+  int16_t i;
+  uint8_t prevButton = 0;  //  <<<--- Not initialized originally  // was int
 
   // wait for the button to be raised up
-  while (btnDown())
-    active_delay(50);
+  while (encoderButtonDown())
+    activeDelay(50);
 
-  active_delay(50);  // debounce
+  activeDelay(50);  // debounce
 
   menuOn = true; //2;
 
   while (menuOn) {
 
     // check if the knob's button was pressed
-    btnState = btnDown();
-
-    if (btnState) {
-      struct Button btn;
-      memcpy_P(&btn, btn_set + select / 10, sizeof(struct Button));
+    if (encoderButtonDown()) {
+      Button btn;
+      memcpy_P(&btn, buttons + select / 10, sizeof(Button));
 
       doCommand(&btn);
 
@@ -1081,22 +944,22 @@ void doCommands() {
         drawFocus(1, DISPLAY_WHITE);
 
       // wait for the button to be up and debounce
-      while (btnDown())
-        active_delay(100);
+      while (encoderButtonDown())
+        activeDelay(100);
 
-      active_delay(500);
+      activeDelay(500);
       return;
     }
 
-    i = enc_read();
+    i = encoderRead();
 
     if (i == 0) {
-      active_delay(50);
+      activeDelay(50);
       continue;
     }
 
     if (i > 0) {
-      if (select + i < MAX_BUTTONS * 10)
+      if (select + i < maxButtons * 10)
         select += i;
     }
 
@@ -1111,13 +974,12 @@ void doCommands() {
     drawFocus(select / 10, DISPLAY_WHITE);
     prevButton = select / 10;
   }
-  //  guiUpdate();
 
-  //debounce the button
-  while (btnDown())
-    active_delay(50);
+  // debounce the button
+  while (encoderButtonDown())
+    activeDelay(50);
 
-  active_delay(50);
+  activeDelay(50);
 
   checkCAT();
 }

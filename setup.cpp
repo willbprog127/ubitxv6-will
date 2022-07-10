@@ -5,39 +5,36 @@
 */
 
 #include <EEPROM.h>
-#include "morse.h"
+// #include "morse.h"
 #include "ubitx.h"
 #include "nano_gui.h"
 
-/* Menus
-    The Radio menus are accessed by tapping on the function button.
-    - The main loop() constantly looks for a button press and calls doMenu() when it detects
-    a function button press.
-    - As the encoder is rotated, at every 10th pulse, the next or the previous menu
-    item is displayed. Each menu item is controlled by it's own function.
-    - Eache menu function may be called to display itself
-    - Each of these menu routines is called with a button parameter.
-    - The btn flag denotes if the menu itme was clicked on or not.
-    - If the menu item is clicked on, then it is selected,
+/*
+  Menus
+  - - -
+    The setup menu is accessed by pressing and holding the encoder button
+    - the main loop() constantly looks for a button press and calls doMenu() when it detects
+        a function button press
+    - as the encoder is rotated, at every 10th pulse, the next or the previous menu
+        item is displayed. Each menu item is controlled by it's own function
+    - each menu function may be called to display itself
+    - each of these menu routines is called with a button parameter
+    - the btn flag denotes if the menu itme was clicked on or not
+    - If the menu item is clicked on, then it is selected
     - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
 */
 
 /* these are used by the si5351 routines in the ubitx_5351 file */
 extern int32_t calibration;
-extern uint32_t si5351bx_vcoa;
+extern uint32_t si5351bxVCOA;
 
-static int prevPuck = -1;
-
-
-/* */
-void setupExit() {
-  menuOn = false;
-}
+static int16_t prevPuck = -1;
 
 
-/* calibration */
+/* frequency calibration */
 void setupFreq() {
-  int knob = 0;
+
+  int16_t knob = 0;
 
   displayDialog("Set Frequency", "Push TUNE to Save");
 
@@ -55,23 +52,23 @@ void setupFreq() {
   displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
 
   // keep clear of any previous button press
-  while (btnDown())
-    active_delay(100);
+  while (encoderButtonDown())
+    activeDelay(100);
 
-  active_delay(100);
+  activeDelay(100);
 
   calibration = 0;
 
-  while (!btnDown())
+  while (!encoderButtonDown())
   {
-    knob = enc_read();
+    knob = encoderRead();
 
     if (knob != 0)
       calibration += knob * 875;
     else
       continue; // don't update the frequency or the display
 
-    si5351bx_setfreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
+    si5351bxSetFreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
     si5351_set_calibration(calibration);
     setFrequency(frequency);
 
@@ -79,46 +76,54 @@ void setupFreq() {
     displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_WILLBACK, DISPLAY_WHITE); //DISPLAY_NAVY
   }
 
+  // store new value in eeprom
   EEPROM.put(MASTER_CAL, calibration);
+
+  // initialize the oscillators
   initOscillators();
+
   si5351_set_calibration(calibration);
+
   setFrequency(frequency);
 
-  // debounce and delay
-  while (btnDown())
-    active_delay(50);
+  // debounce
+  while (encoderButtonDown())
+    activeDelay(50);
 
-  active_delay(100);
+  activeDelay(100);
 }
 
 
-/* */
+/* set BFO adjustment */
 void setupBFO() {
-  int knob = 0;
+
+  int16_t knob = 0;
 
   displayDialog("Set BFO", "Press TUNE to Save");
 
   usbCarrier = 11053000l;
-  si5351bx_setfreq(0, usbCarrier);
+  si5351bxSetFreq(0, usbCarrier);
   printCarrierFreq(usbCarrier);
 
-  while (!btnDown()) {
-    knob = enc_read();
+  while (!encoderButtonDown()) {
+    knob = encoderRead();
 
     if (knob != 0)
       usbCarrier -= 50 * knob;
     else
       continue; // don't update the frequency or the display
 
-    si5351bx_setfreq(0, usbCarrier);
+    si5351bxSetFreq(0, usbCarrier);
     setFrequency(frequency);
     printCarrierFreq(usbCarrier);
 
-    active_delay(100);
+    activeDelay(100);
   }
 
+  // store new value in eeprom
   EEPROM.put(USB_CAL, usbCarrier);
-  si5351bx_setfreq(0, usbCarrier);
+
+  si5351bxSetFreq(0, usbCarrier);
 
   setFrequency(frequency);
 
@@ -128,20 +133,21 @@ void setupBFO() {
 }
 
 
-/* */
+/* sets CW transmit / receive delay */
 void setupCwDelay() {
-  int knob = 0;
+
+  int16_t knob = 0;
 
   displayDialog("Set CW T/R Delay", "Press tune to Save");
 
-  active_delay(500);
+  activeDelay(500);
 
-  itoa(10 * (int)cwDelayTime, gbuffB, 10);
+  itoa(10 * (int16_t)cwDelayTime, gbuffB, 10);
   strcat(gbuffB, " msec");
   displayText(gbuffB, 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
 
-  while (!btnDown()) {
-    knob = enc_read();
+  while (!encoderButtonDown()) {
+    knob = encoderRead();
 
     if (knob < 0 && cwDelayTime > 10)
       cwDelayTime -= 10;
@@ -150,44 +156,47 @@ void setupCwDelay() {
     else
       continue; // don't update the frequency or the display
 
-    itoa(10 * (int)cwDelayTime, gbuffB, 10);
+    itoa(10 * (int16_t)cwDelayTime, gbuffB, 10);
     strcat(gbuffB, " msec");
     displayText(gbuffB, 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
   }
 
+  // store new value in eeprom
   EEPROM.put(CW_DELAYTIME, cwDelayTime);
 
-  active_delay(500);
+  activeDelay(500);
 
   menuOn = false;
 }
 
 
-/* */
+/* set up keyer type */
 void setupKeyer() {
-  int tmp_key, knob;
+
+  int16_t tmp_key;
+  int16_t knob;
 
   displayDialog("Set CW Keyer", "Press tune to Save");
 
-  if (!Iambic_Key)
+  if (!iambicKey)
     displayText("< Hand Key >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
   else if (keyerControl & IAMBICB)
     displayText("< Iambic A >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
   else
     displayText("< Iambic B >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
 
-  if (!Iambic_Key)
+  if (!iambicKey)
     tmp_key = 0;  // hand key
   else if (keyerControl & IAMBICB)
     tmp_key = 2;  // Iambic B
   else
     tmp_key = 1;
 
-  while (!btnDown()) {
-    knob = enc_read();
+  while (!encoderButtonDown()) {
+    knob = encoderRead();
 
     if (knob == 0) {
-      active_delay(50);
+      activeDelay(50);
       continue;
     }
 
@@ -208,19 +217,20 @@ void setupKeyer() {
       displayText("< Iambic B >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
   }
 
-  active_delay(500);
+  activeDelay(500);
 
   if (tmp_key == 0)
-    Iambic_Key = false;
+    iambicKey = false;
   else if (tmp_key == 1) {
-    Iambic_Key = true;
+    iambicKey = true;
     keyerControl &= ~IAMBICB;
   }
   else if (tmp_key == 2) {
-    Iambic_Key = true;
+    iambicKey = true;
     keyerControl |= IAMBICB;
   }
 
+  // store new value in eeprom
   EEPROM.put(CW_KEY_TYPE, tmp_key);
 
   menuOn = false;
@@ -229,9 +239,8 @@ void setupKeyer() {
 
 /* shows setup menu */
 void drawSetupMenu() {
-  displayClear(DISPLAY_BLACK);
 
-  // DISPLAY_NAVY
+  displayClear(DISPLAY_BLACK);
 
   displayText("Setup", 10, 10, 300, 35, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WHITE);
   displayRect(10, 10, 300, 220, DISPLAY_WHITE);
@@ -246,9 +255,10 @@ void drawSetupMenu() {
 
 
 /* moves selection indicator */
-void movePuck(int i) {
+void movePuck(int16_t i) {
+
   if (prevPuck >= 0)
-    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK); // DISPLAY_NAVY);
 
   displayRect(15, 49 + (i * 30), 290, 25, DISPLAY_WHITE);
 
@@ -258,22 +268,23 @@ void movePuck(int i) {
 
 /* */
 void doSetupMenu() {
-  int select = 0;
-  int i;
+
+  int16_t select = 0;
+  int16_t i;
 
   drawSetupMenu();
   movePuck(select);
 
   // wait for the button to be raised up
-  while (btnDown())
-    active_delay(50);
+  while (encoderButtonDown())
+    activeDelay(50);
 
-  active_delay(50);  // debounce
+  activeDelay(50);  // debounce
 
   menuOn = true; //2;
 
   while (menuOn) {
-    i = enc_read();
+    i = encoderRead();
 
     if (i > 0) {
       if (select + i < 60)
@@ -287,16 +298,16 @@ void doSetupMenu() {
       movePuck(select / 10);
     }
 
-    if (!btnDown()) {
-      active_delay(50);
+    if (!encoderButtonDown()) {
+      activeDelay(50);
       continue;
     }
 
     // wait for the touch to lift off and debounce
-    while (btnDown())
-      active_delay(50);
+    while (encoderButtonDown())
+      activeDelay(50);
 
-    active_delay(300);
+    activeDelay(300);
 
     if (select < 10)
       setupFreq();
@@ -315,10 +326,10 @@ void doSetupMenu() {
   }
 
   // debounce the button
-  while (btnDown())
-    active_delay(50);
+  while (encoderButtonDown())
+    activeDelay(50);
 
-  active_delay(50);
+  activeDelay(50);
 
   checkCAT();
 

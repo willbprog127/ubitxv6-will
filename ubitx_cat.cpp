@@ -14,7 +14,7 @@
    This is very much a work in progress. Parts of this code have been liberally
    borrowed from other GPLicensed works like hamlib.
 
-   WARNING: This is an unstable version and it has worked with fldigi,
+   WARNING: This is an unstable version.  though it has worked with fldigi,
    it gives time out error with WSJTX 1.8.0
 */
 
@@ -31,16 +31,16 @@
 #define CAT_MODE_PKT        0x0C
 #define CAT_MODE_FMN        0x88
 
-unsigned int skipTimeCount = 0;
+// uint16_t skipTimeCount = 0;  //  <<<--- not used, apparently
 
-static unsigned long rxBufferArriveTime = 0;
-static byte rxBufferCheckCount = 0;
-static byte cat[5];
+static uint32_t rxBufferArriveTime = 0;
+static uint8_t rxBufferCheckCount = 0;
+static uint8_t cat[5];
 static bool insideCat = false;
 
 
 /* set high nibble */
-byte setHighNibble(byte b, byte v) {
+uint8_t setHighNibble(uint8_t b, uint8_t v) {
   // Clear the high nibble
   b &= 0x0f;
   // Set the high nibble
@@ -49,7 +49,7 @@ byte setHighNibble(byte b, byte v) {
 
 
 /* set low nibble */
-byte setLowNibble(byte b, byte v) {
+uint8_t setLowNibble(uint8_t b, uint8_t v) {
   // Clear the low nibble
   b &= 0xf0;
   // Set the low nibble
@@ -58,23 +58,23 @@ byte setLowNibble(byte b, byte v) {
 
 
 /* get high nibble */
-byte getHighNibble(byte b) {
+uint8_t getHighNibble(uint8_t b) {
   return (b >> 4) & 0x0f;
 }
 
 
 /* get low nibble */
-byte getLowNibble(byte b) {
+uint8_t getLowNibble(uint8_t b) {
   return b & 0x0f;
 }
 
 
 /*
-  Takes a number and produces the requested number of decimal digits, staring
-  from the least significant digit.
+  Takes a number and produces the requested number of decimal digits, starting
+  from the least significant digit
 */
-void getDecimalDigits(unsigned long number, byte * result, int digits) {
-  for (int i = 0; i < digits; i++) {
+void getDecimalDigits(uint32_t number, uint8_t * result, int16_t digits) {
+  for (int16_t i = 0; i < digits; i++) {
     // "Mask off" (in a decimal sense) the LSD and return it
     result[i] = number % 10;
     // "Shift right" (in a decimal sense)
@@ -83,11 +83,11 @@ void getDecimalDigits(unsigned long number, byte * result, int digits) {
 }
 
 /* Takes a frequency and writes it into the CAT command buffer in BCD form. */
-void writeFreq(unsigned long freq, byte* cmd) {
+void writeFreq(uint32_t freq, uint8_t * cmd) {
   // Convert the frequency to a set of decimal digits. We are taking 9 digits
   // so that we can get up to 999 MHz. But the protocol doesn't care about the
   // LSD (1's place), so we ignore that digit.
-  byte digits[9];
+  uint8_t digits[9];
   getDecimalDigits(freq, digits, 9);
 
   // Start from the LSB and get each nibble
@@ -106,25 +106,25 @@ void writeFreq(unsigned long freq, byte* cmd) {
 
   [12][34][56][78] = 123.45678? Mhz
 */
-unsigned long readFreq(byte * cmd) {
+uint32_t readFreq(uint8_t * cmd) {
   // Pull off each of the digits
-  byte d7 = getHighNibble(cmd[0]);
-  byte d6 = getLowNibble(cmd[0]);
-  byte d5 = getHighNibble(cmd[1]);
-  byte d4 = getLowNibble(cmd[1]);
-  byte d3 = getHighNibble(cmd[2]);
-  byte d2 = getLowNibble(cmd[2]);
-  byte d1 = getHighNibble(cmd[3]);
-  byte d0 = getLowNibble(cmd[3]);
+  uint8_t d7 = getHighNibble(cmd[0]);
+  uint8_t d6 = getLowNibble(cmd[0]);
+  uint8_t d5 = getHighNibble(cmd[1]);
+  uint8_t d4 = getLowNibble(cmd[1]);
+  uint8_t d3 = getHighNibble(cmd[2]);
+  uint8_t d2 = getLowNibble(cmd[2]);
+  uint8_t d1 = getHighNibble(cmd[3]);
+  uint8_t d0 = getLowNibble(cmd[3]);
   return
-    (unsigned long)d7 * 100000000L +
-    (unsigned long)d6 * 10000000L +
-    (unsigned long)d5 * 1000000L +
-    (unsigned long)d4 * 100000L +
-    (unsigned long)d3 * 10000L +
-    (unsigned long)d2 * 1000L +
-    (unsigned long)d1 * 100L +
-    (unsigned long)d0 * 10L;
+    (uint32_t)d7 * 100000000L +
+    (uint32_t)d6 * 10000000L +
+    (uint32_t)d5 * 1000000L +
+    (uint32_t)d4 * 100000L +
+    (uint32_t)d3 * 10000L +
+    (uint32_t)d2 * 1000L +
+    (uint32_t)d1 * 100L +
+    (uint32_t)d0 * 10L;
 }
 
 
@@ -132,15 +132,9 @@ unsigned long readFreq(byte * cmd) {
 void catReadEEPRom(void)
 {
   // for remove warnings
-  byte temp0 = cat[0];
-  byte temp1 = cat[1];
-  /*
-    itoa((int) cat[0], gbuffB, 16);
-    strcat(gbuffB, ":");
-    itoa((int) cat[1], gbuffC, 16);
-    strcat(gbuffB, gbuffC);
-    printLine2(gbuffB);
-  */
+  uint8_t temp0 = cat[0];
+  uint8_t temp1 = cat[1];
+
   cat[0] = 0;
   cat[1] = 0;
   // for remove warnings[1] = 0;
@@ -302,9 +296,10 @@ void catReadEEPRom(void)
 
 
 /* */
-void processCATCommand2(byte * cmd) {
-  byte response[5];
-  unsigned long f;
+void processCATCommand2(uint8_t * cmd) {
+
+  uint8_t response[5];
+  uint32_t f;
 
   switch (cmd[4]) {
     /*  case 0x00:
@@ -435,11 +430,8 @@ void processCATCommand2(byte * cmd) {
 
     default:
       // somehow, get this to print the four bytes
-      ultoa(*((unsigned long *)cmd), gbuffC, 16);
-      /*itoa(cmd[4], gbuffB, 16);
-        strcat(gbuffB, ">");
-        strcat(gbuffB, gbuffC);
-        printLine2(gbuffB);*/
+      ultoa(*((uint32_t *)cmd), gbuffC, 16);
+
       response[0] = 0x00;
       Serial.write(response[0]);
   }
@@ -448,12 +440,13 @@ void processCATCommand2(byte * cmd) {
 }
 
 
-// int catCount = 0;
+// int16_t catCount = 0;
 
 
 /* check for cat commands / data */
 void checkCAT() {
-  byte i;
+
+  uint8_t i;
 
   // Check Serial Port Buffer
   if (Serial.available() == 0) {      // Set Buffer Clear status
@@ -489,7 +482,7 @@ void checkCAT() {
 
   // This routine is enabled to debug the cat protocol
   /*
-    int catCount = 0;
+    int16_t catCount = 0;
 
     catCount++;
 

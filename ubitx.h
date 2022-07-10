@@ -28,6 +28,9 @@
     file an Issue on this project's github to let me know
 */
 
+#ifndef _UBITX_H_
+#define _UBITX_H_
+
 #include <stdint.h>
 #include <Arduino.h>
 #include <Wire.h>
@@ -35,42 +38,42 @@
 
 
 /*
-    We need to carefully pick assignment of pin for various purposes.
-    There are two sets of completely programmable pins on the Raduino.
+  We need to carefully pick assignment of pin for various purposes.
+  There are two sets of completely programmable pins on the Raduino.
 
-    First, on the top of the board, in line with the LCD connector is an 8-pin connector
-    that is largely meant for analog inputs and front-panel control. It has a regulated 5v output,
-    ground and six pins. Each of these six pins can be individually programmed
-    either as an analog input, a digital input or a digital output.
+  First, on the top of the board, in line with the LCD connector is an 8-pin connector
+  that is largely meant for analog inputs and front-panel control. It has a regulated 5v output,
+  ground and six pins. Each of these six pins can be individually programmed
+  either as an analog input, a digital input or a digital output.
 
-    This connector is marked 'CONTROLS' in the schematic.
+  This connector is marked 'CONTROLS' in the schematic.
 
-    The pins are assigned as follows (left to right, display facing you):
-       Pin 1 (Violet), A7, SPARE
-       Pin 2 (Blue),   A6, KEYER (DATA)
-       Pin 3 (Green), +5v
-       Pin 4 (Yellow), Gnd
-       Pin 5 (Orange), A3, PTT
-       Pin 6 (Red),    A2, F BUTTON
-       Pin 7 (Brown),  A1, ENC B
-       Pin 8 (Black),  A0, ENC A
-    Note: A5, A4 are wired to the Si5351 as I2C interface
+  The pins are assigned as follows (left to right, display facing you):
+     Pin 1 (Violet), A7, SPARE
+     Pin 2 (Blue),   A6, KEYER (DATA)
+     Pin 3 (Green), +5v
+     Pin 4 (Yellow), Gnd
+     Pin 5 (Orange), A3, PTT
+     Pin 6 (Red),    A2, F BUTTON
+     Pin 7 (Brown),  A1, ENC B
+     Pin 8 (Black),  A0, ENC A
+  Note: A5, A4 are wired to the Si5351 as I2C interface
 
-    Though, this can be assigned anyway, for this application of the Arduino, we will make the following
-    assignment:
-    A2 will connect to the PTT line, which is the usually a part of the mic connector
-    A3 is connected to a push button that can momentarily ground this line. This will be used for RIT/Bandswitching, etc.
-    A6 is to implement a keyer, it is reserved and not yet implemented
-    A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
-    ground and +5v lines available on the connector. This implements the tuning mechanism
+  Though, this can be assigned anyway, for this application of the Arduino, we will make the following
+  assignment:
+  A2 will connect to the PTT line, which is the usually a part of the mic connector
+  A3 is connected to a push button that can momentarily ground this line. This will be used for RIT/Bandswitching, etc.
+  A6 is to implement a keyer, it is reserved and not yet implemented
+  A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
+  ground and +5v lines available on the connector. This implements the tuning mechanism  // <<<--- ???
 
-    The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
-    This assignment is as follows :
-      Pin   1   2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
-           GND +5V CLK0  GND  GND  CLK1 GND  GND  CLK2  GND  D2   D3   D4   D5   D6   D7
-    These too are flexible with what you may do with them, for the Raduino, we use them to :
-    - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
-    - CW_KEY line : turns on the carrier for CW
+  The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
+  This assignment is as follows :
+    Pin   1   2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
+         GND +5V CLK0  GND  GND  CLK1 GND  GND  CLK2  GND  D2   D3   D4   D5   D6   D7
+  These too are flexible with what you may do with them, for the Raduino, we use them to :
+  - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
+  - CW_KEY line : turns on the carrier for CW
 */
 
 /*
@@ -94,27 +97,6 @@
                             // key can be up within a tx period
 
 /*
-    The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
-    We have to be very careful with variables that are declared inside the functions as they are
-    created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
-    if you declare large strings inside functions, they can easily exceed the capacity of the stack
-    and mess up your programs.
-    *
-    We circumvent this by declaring a few global buffers as kitchen counters where we can
-    slice and dice our strings. These strings are mostly used to control the display or handle
-    the input and output from the USB port.
-*/
-extern char gbuffC[30];
-extern char gbuffB[30];
-
-/*
-   here's a special string you can use that displays at the bottom of the home screen
-   MUST be 18 characters or less!!!
-*/
-const char customString[19] = "AF7EC - Jesus rox!";
-
-
-/*
    These are the indices where these user changable settings are stored in the EEPROM
 */
 #define MASTER_CAL 0
@@ -130,7 +112,7 @@ const char customString[19] = "AF7EC - Jesus rox!";
 #define CW_SPEED 28
 #define CW_DELAYTIME 48
 
-/* the screen calibration parameters : int slope_x=104, slope_y=137, offset_x=28, offset_y=29; */
+/* the screen calibration parameters : int slopeX=104, slopeY=137, offsetX=28, offsetY=29; */
 #define SLOPE_X 32
 #define SLOPE_Y 36
 #define OFFSET_X 40
@@ -149,6 +131,7 @@ const char customString[19] = "AF7EC - Jesus rox!";
 
 // handkey, iambic a, iambic b : 0, 1, 2f
 #define CW_KEY_TYPE 358
+#define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
 
 /*
     The uBITX is an upconversion transceiver. The first IF is at 45 MHz.
@@ -177,35 +160,52 @@ const char customString[19] = "AF7EC - Jesus rox!";
 #define TX_SSB 0
 #define TX_CW 1
 
-#define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
+/*
+    The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
+    We have to be very careful with variables that are declared inside the functions as they are
+    created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
+    if you declare large strings inside functions, they can easily exceed the capacity of the stack
+    and mess up your programs.
+    *
+    We circumvent this by declaring a few global buffers as kitchen counters where we can
+    slice and dice our strings. These strings are mostly used to control the display or handle
+    the input and output from the USB port.
+*/
+extern char gbuffC[30];
+extern char gbuffB[30];
+
+/*
+   here's a special string you can use that displays at the bottom of the home screen
+   MUST fix within the char array's size or smaller (size can be customized, if needed)
+*/
+const char customString[19] = "AF7EC - Jesus rox!";
+
+extern uint8_t vfoActive;
+
+extern uint32_t vfoA;
+extern uint32_t vfoB;
+extern uint32_t sideTone;
+extern uint32_t usbCarrier;
+
+extern uint32_t frequency;
+// extern uint32_t ritRxFrequency;
+extern uint32_t ritTxFrequency;  // frequency is the current frequency on the dial
+// extern uint32_t firstIF;
 
 extern bool ritOn;
-extern byte vfoActive;
-
-extern unsigned long vfoA;
-extern unsigned long vfoB;
-extern unsigned long sideTone;
-extern unsigned long usbCarrier;
-
-extern bool isUsbVfoA;
-extern bool isUsbVfoB;
-
-extern unsigned long frequency;
-extern unsigned long ritRxFrequency;
-extern unsigned long ritTxFrequency;  // frequency is the current frequency on the dial
-extern unsigned long firstIF;
-
-extern bool cwMode;  // if cwMode is flipped on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
+// extern bool isUsbVfoA;
+// extern bool isUsbVfoB;
+extern bool cwMode;  // if cwMode is on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
+extern bool iambicKey;
 
 /*
     these are variables that control the keyer behaviour
 */
-extern uint16_t cwSpeed; // this is actually the dot period in milliseconds
+extern uint16_t cwSpeed;  // dot period in milliseconds
 extern int32_t calibration;
 extern uint16_t cwDelayTime;
-extern bool Iambic_Key;
 
-extern byte keyerControl;
+extern uint8_t keyerControl;
 
 /*
    Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
@@ -216,26 +216,26 @@ extern bool splitOn;              // working split, uses VFO B as the transmit f
 extern bool isUSB;               // upper sideband was selected, this is reset to the default for the
                                  // frequency when it crosses the frequency border of 10 MHz
 extern bool menuOn;              // set to true when the menu is being displayed, if a menu item sets it to false, the menu is exited
-extern bool inTone;              // set to true when we're actively adjusting the cw sidetone frequency
-extern bool inValByKnob;         // set to true when valueByKnob is running
-extern bool endValByKnob;        // set to true when we want to end the valueByKnob process
-extern unsigned long cwTimeout;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
+// extern bool inTone;              // set to true when we're actively adjusting the cw sidetone frequency
+// extern bool inValByKnob;         // set to true when valueByKnob is running
+// extern bool endValByKnob;        // set to true when we want to end the valueByKnob process
+extern uint32_t cwTimeout;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
 /* forward declarations of functions implemented in the main file, ubitx_xxx.ino */
-void active_delay(unsigned int delay_by);
+void activeDelay(uint16_t delay_by);
 void saveVFOs();
-void setFrequency(unsigned long f);
-void startTx(byte txMode);
+void setFrequency(uint32_t f);
+void startTx(uint8_t txMode);
 void stopTx();
-void ritEnable(unsigned long f);
+void ritEnable(uint32_t f);
 void ritDisable();
 void checkCAT();
 void cwKeyer(void);
-void switchVFO(int vfoSelect);
+void switchVFO(uint8_t vfoSelect);  // was int vfoSelect
 
 /* forward declarations of functions in file ubitx_ui.cpp */
-int btnDown(); // returns true if the encoder button is pressed
-void displayVFO(int vfo); // updates just the VFO frequency to show what is in 'frequency' variable
+bool encoderButtonDown(); // returns true if the encoder button is pressed  // was int
+void displayVFO(uint8_t vfo); // updates just the VFO frequency to show what is in 'frequency' variable  // was int vfo
 void displayVFOs();   // updates both vfos
 void redrawVFOs();    // redraws only the changed digits of the vfo
 void guiUpdate(bool clearScreen = false, bool refreshVFOs = false);     // repaints the entire screen. Slow!!
@@ -245,7 +245,7 @@ void drawTx();
     getValueByKnob() provides a reusable dialog box to get a value from the encoder, the prefix and postfix
     are useful to concatanate the values with text like "Set Freq to " x " KHz"
 */
-int getValueByKnob(int minimum, int maximum, int step_size, int initial, char * prefix, char * postfix);
+int getValueByKnob(int16_t minimum, int16_t maximum, int16_t stepSize, int16_t initial, const char * prefix, const char * postfix);
 
 /* forward declaration of functions in setup.cpp */
 void doSetupMenu(); // main setup function, displays the setup menu, calls various dialog boxes
@@ -254,29 +254,31 @@ void setupFreq();
 
 /* displays a nice dialog box with a title and instructions as footnotes */
 void displayDialog(const char * title, const char * instructions);
-void printCarrierFreq(unsigned long freq); //used to display the frequency in the command area (ex: fast tuning)
+void printCarrierFreq(uint32_t freq); // used to display the frequency in the command area
 
 /* forward declarations of functions in encoder.cpp */
-void enc_setup(void);
-int enc_read(void);
+void encoderSetup();
+int16_t encoderRead();
 
 /* main functions to check if any button is pressed and other user interface events */
-void doCommands();  //does the commands with encoder to jump from button to button
-void checkTouch(); //does the commands with a touch on the buttons
+void doCommands();  // does the commands with encoder to jump from button to button
+void checkTouch(); // does the commands with a touch on the buttons
 
 /*
-    The main chip which generates upto three oscillators of various frequencies in the
-    Raduino is the Si5351a. To learn more about Si5351a you can download the datasheet
-    from www.silabs.com although, strictly speaking it is not a requirment to understand this code.
+  The main chip which generates upto three oscillators of various frequencies in the
+  Raduino is the Si5351a. To learn more about Si5351a you can download the datasheet
+  from www.silabs.com although, strictly speaking it is not a requirment to understand this code.
 
-    We no longer use the standard SI5351 library because of its huge overhead due to many unused
-    features consuming a lot of program space. Instead of depending on an external library we now use
-    Jerry Gaffke's, KE7ER, lightweight standalone mimimalist "si5351bx" routines (see further down the
-    code). Here are some defines and declarations used by Jerry's routines:
+  We no longer use the standard SI5351 library because of its huge overhead due to many unused
+  features consuming a lot of program space. Instead of depending on an external library we now use
+  Jerry Gaffke's, KE7ER, lightweight standalone mimimalist "si5351bx" routines (see further down the
+  code). Here are some defines and declarations used by Jerry's routines:
 */
 
 /* forward declarations of functions in ubitx_si5351.cpp */
-void si5351bx_setfreq(uint8_t clknum, uint32_t fout);
+void si5351bxSetFreq(uint8_t clknum, uint32_t fout);
 void initOscillators();
 void si5351_set_calibration(int32_t cal); // calibration is a small value that is nudged to make up for
                                           // the inaccuracies of the reference 25 MHz crystal frequency
+
+#endif // _UBITX_H_
