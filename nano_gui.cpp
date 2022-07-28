@@ -9,7 +9,10 @@
 #include "nano_gui.h"
 
 /*
-    * display panel pin assignments *
+    display panel pin assignments
+    - - -
+    PIN NAME      MCU   ?   DESC
+    ------------------------------------------------------------------
     14  T_IRQ           2 std   changed
     13  T_DOUT              (parallel to SOD/MOSI, pin 9 of display)
     12  T_DIN               (parallel to SDI/MISO, pin 6 of display)
@@ -25,15 +28,13 @@
     2   GND       GND
     1   VCC       VCC
 
-    Display is model TJCTM24028-SPI - TFT LCD 2.8 inch 240×320 RGB SPI display with touchscreen
+    display is model TJCTM24028-SPI - TFT LCD 2.8 inch 240×320 RGB SPI display with touchscreen
     it uses an ILI9341 display controller and an XPT2046 touch controller.
 */
 
 #define TFT_CS 10   // display chip-select pin
 #define CS_PIN  8   // touch select pin on spi interface
 #define TFT_RS  9   // display reset pin
-
-const uint8_t maxVBuff = 64;
 
 const int16_t zThreshold = 400;
 const uint8_t mSecThreshold = 3;
@@ -44,6 +45,7 @@ struct Point tsPoint;
 
 const GFXfont * gfxFont = NULL;
 
+const uint8_t maxVBuff = 64;
 char vbuff[maxVBuff];
 
 /* filled by the screen calibration routine */
@@ -192,6 +194,7 @@ void scaleTouch(struct Point * p) {
 }
 
 
+/* alias PROGMEM helpers */
 #if !defined(__INT_MAX__) || (__INT_MAX__ > 0xFFFF)
 #define pgmReadPointer(addr) ((void *)pgm_read_dword(addr))
 #else
@@ -225,27 +228,27 @@ inline uint8_t * pgmReadBitmapPtr(const GFXfont * gfxFont) {
 }
 
 
-/* */
+/* display SPI write wrapper  */
 inline static void utftWrite(uint8_t d) {
   SPI.transfer(d);
 }
 
 
-/* */
+/* display SPI send command wrapper */
 inline static void utftCmd(uint8_t vh) {
   *(portOutputRegister(digitalPinToPort(TFT_RS))) &=  ~digitalPinToBitMask(TFT_RS); // LCD_RS=0;
   utftWrite(vh);
 }
 
 
-/* */
+/* display SPI send data wrapper */
 inline static void utftData(uint8_t vh) {
   *(portOutputRegister(digitalPinToPort(TFT_RS))) |=  digitalPinToBitMask(TFT_RS); // LCD_RS=1;
   utftWrite(vh);
 }
 
 
-/* */
+/* display SPI send position info wrapper */
 static void utftAddress(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
 
   utftCmd(0x2a);  // column address set
@@ -284,16 +287,15 @@ void quickFill(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color) {
   uint32_t ncount = (uint32_t)(x2 - x1 + 1) * (uint32_t)(y2 - y1 + 1);
   uint16_t k = 0;
 
-  // set the window
   digitalWrite(TFT_CS, LOW);
   utftCmd(0x02c); // write_memory_start
-  utftAddress(x1, y1, x2, y2);
+  utftAddress(x1, y1, x2, y2);  // set position on screen
   *(portOutputRegister(digitalPinToPort(TFT_RS))) |=  digitalPinToBitMask(TFT_RS); // LCD_RS=1;
 
   while (ncount) {
     k = 0;
 
-    for (uint16_t i = 0; i < maxVBuff / 2; i++) {  // was int i = ...
+    for (uint16_t i = 0; i < maxVBuff / 2; i++) {
       vbuff[k++] = color >> 8;
       vbuff[k++] = color & 0xff;
     }
@@ -315,19 +317,19 @@ void quickFill(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color) {
 }
 
 
-/* */
+/* draw horizontal line */
 void displayHline(uint16_t x, uint16_t y, uint16_t l, uint16_t color) {
   quickFill(x, y, x + l, y, color);
 }
 
 
-/* */
+/* draw vertical line */
 void displayVline(uint16_t x, uint16_t y, uint16_t l, uint16_t color) {
   quickFill(x, y, x, y + l, color);
 }
 
 
-/* */
+/* fill whole display with specified color, overwriting all contents */
 void displayClear(uint16_t color) {
   quickFill(0, 0, 319, 239, color);
 }
@@ -346,7 +348,7 @@ void displayRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t hicolo
 }
 
 
-/* draw rectangle on screen with fill */
+/* draw rectangle on screen - with fill */
 void displayFillrect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
   quickFill(x, y, x + w, y + h, color);
 }
@@ -449,8 +451,9 @@ void displayInit(void) {
 
 
 
-/* *************************************************************************
+/*
   Draw a single character
+  - - -
     x     Bottom left corner x coordinate
     y     Bottom left corner y coordinate
     c     The 8-bit font-indexed character (likely ascii)
@@ -499,16 +502,18 @@ void displayChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg) {
 
     }
 
+    // set position on display
     utftAddress(x + xo, y + yo + yy, x + xo + w, y + yo + yy);
     *(portOutputRegister(digitalPinToPort(TFT_RS))) |= digitalPinToBitMask(TFT_RS); // LCD_RS=1;
     SPI.transfer(vbuff, k);
     // checkCAT();  // <<<---
   }
+
   checkCAT();
 }
 
 
-/* */
+/* get a text string's extents */
 int16_t displayTextExtent(const char * text) {
 
   int16_t ext = 0;
@@ -528,7 +533,7 @@ int16_t displayTextExtent(const char * text) {
 }
 
 
-/* */
+/* display a text string with fg and bg color only - NO rectangles, NO borders */
 void displayRawText(const char * text, int16_t x1, int16_t y1, uint16_t color, uint16_t background) {  // <<<--- changed to const char
 
   while (*text) {
@@ -542,26 +547,30 @@ void displayRawText(const char * text, int16_t x1, int16_t y1, uint16_t color, u
       uint8_t w = pgm_read_byte(&glyph->width);
       uint8_t h = pgm_read_byte(&glyph->height);
 
-      if ((w > 0) && (h > 0))  // Is there an associated bitmap?
+      if ((w > 0) && (h > 0))  // is there an associated bitmap?
         displayChar(x1, y1 + textLineHeight, c, color, background);
 
       x1 += (uint8_t)pgm_read_byte(&glyph->xAdvance);
     }
-  } // end of the while loop of the characters to be printed
+  } // end of the character printing while loop
 
   checkCAT();
 }
 
 
-// The generic routine to display one line on the LCD
+/*
+  display a text string with fg, bg, upper and lower border colors, including filled rect where text is displayed
+  not specifying borderlow will make it the same color as upperborder
+*/
 void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h, uint16_t color, uint16_t background,
-  uint16_t borderhigh, uint16_t borderlow) {  // <<<--- changed to const char
+  uint16_t upperborder, uint16_t lowerborder) {  // <<<--- changed to const char
 
-  if (borderlow == 0)
-    borderlow = borderhigh;
+  // default value for lowerborder is 0 - set in forward declaration in nano_gui.h
+  if (lowerborder == 0)
+    lowerborder = upperborder;
 
-  displayFillrect(x1, y1, w , h, background);  // erase spot where text will be
-  displayRect(x1, y1, w , h, borderhigh, borderlow); // DISPLAY_3DBOTTOM);  // <<<--- no no, Will!!!
+  displayFillrect(x1, y1, w , h, background);  // fill in area where text will be
+  displayRect(x1, y1, w , h, upperborder, lowerborder);
 
   x1 += (w - displayTextExtent(text)) / 2;
   y1 += (h - textLineHeight) / 2;
@@ -581,21 +590,24 @@ void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h
 
       x1 += (uint8_t)pgm_read_byte(&glyph->xAdvance);
     }
-  } // end of the while loop of the characters to be printed
+  } // end of the character printing while loop
 
   checkCAT();  // <<<---
 }
 
 
-/* do touch controller calibration - tapping on-screen crosses */
+/* do touch controller calibration - tapping stylus/fingernail on-screen crosses */
 void doTouchCalibration() {
 
   int16_t x1;
   int16_t y1;
+
   int16_t x2;
   int16_t y2;
+
   int16_t x3;
   int16_t y3;
+
   int16_t x4;
   int16_t y4;
 
@@ -634,6 +646,7 @@ void doTouchCalibration() {
   x2 = tsPoint.x;
   y2 = tsPoint.y;
 
+  // clear previous cross
   displayHline(290, 20, 20, DISPLAY_BLACK);
   displayVline(300, 10, 20, DISPLAY_BLACK);
 
@@ -652,6 +665,7 @@ void doTouchCalibration() {
   while (readTouch())
     delay(100);
 
+  // clear previous cross
   displayHline(10, 220, 20, DISPLAY_BLACK);
   displayVline(20, 210, 20, DISPLAY_BLACK);
 
@@ -667,6 +681,7 @@ void doTouchCalibration() {
   x4 = tsPoint.x;
   y4 = tsPoint.y;
 
+  // clear previous cross
   displayHline(290, 220, 20, DISPLAY_BLACK);
   displayVline(300, 210, 20, DISPLAY_BLACK);
 
@@ -682,7 +697,9 @@ void doTouchCalibration() {
   offsetX = x1 + -((20 * slopeX) / 10);
   offsetY = y1 + -((20 * slopeY) / 10);
 
+  // store in eeprom
   writeTouchCalibration();
 
+  // erase all teh thingz
   displayClear(DISPLAY_BLACK);
 }

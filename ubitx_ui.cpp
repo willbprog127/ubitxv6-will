@@ -426,7 +426,7 @@ void displayRIT() {
 //}
 
 
-/* */
+/* use the keypad to manually enter a frequency */
 void enterFreq() {
 
   // display number-pad buttons
@@ -441,6 +441,7 @@ void enterFreq() {
   memset(gbuffC, 0, sizeof(gbuffC));
 
   while (true) {
+
     checkCAT();
 
     if (!readTouch())
@@ -449,6 +450,7 @@ void enterFreq() {
     scaleTouch(&tsPoint);
 
     for (uint8_t i = 0; i < maxKeys; i++) {
+
       Button btn2;
       memcpy_P(&btn2, keypad + i, sizeof(Button));
 
@@ -460,10 +462,12 @@ void enterFreq() {
 
         // we're done
         if (!strcmp(btn2.text, "OK")) {
+
           long frq = atol(gbuffC);
 
           // update the frequency if entered value is valid
           if (30000 >= frq && frq > 100) {
+
             frequency = frq * 1000l;
 
             setFrequency(frequency);
@@ -759,7 +763,7 @@ void setCwTone() {
     if (inTone == true) {
         inTone = false;
 
-        // draw TON button as OFF / standard
+        // draw TON button as OFF / normal
         btnDraw(&btn);
 
         checkCAT();
@@ -824,17 +828,11 @@ void doCommand(Button * btn) {
   else if (!strcmp(btn->text, "SPL"))
     splitToggle(btn);
   else if (!strcmp(btn->text, "A")) {
-    if (vfoActive == VFO_A)
-      //fastTune();  // <<<--- no thank you -- too easy to trigger
-      return;
-    else
+    if (vfoActive != VFO_A)    //  if (vfoActive == VFO_A)
       switchVFO(VFO_A);
   }
   else if (!strcmp(btn->text, "B")) {
-    if (vfoActive == VFO_B)
-      //fastTune();  // <<<--- no thank you -- too easy to trigger
-      return;
-    else
+    if (vfoActive != VFO_B)    //  if (vfoActive == VFO_B)
       switchVFO(VFO_B);
   }
   else if (!strcmp(btn->text, "80"))
@@ -842,15 +840,13 @@ void doCommand(Button * btn) {
   else if (!strcmp(btn->text, "40"))
     switchBand(7000000l);
   else if (!strcmp(btn->text, "30"))
-    switchBand(10000000l);
+    switchBand(10100000l);  //  <<<--- was 10000000l
   else if (!strcmp(btn->text, "20"))
     switchBand(14000000l);
   else if (!strcmp(btn->text, "17"))
     switchBand(18000000l);
   else if (!strcmp(btn->text, "15"))
     switchBand(21000000l);
-  else if (!strcmp(btn->text, "13"))
-    switchBand(24800000l);
   else if (!strcmp(btn->text, "10"))
     switchBand(28000000l);
   else if (!strcmp(btn->text, "FRQ"))
@@ -877,6 +873,7 @@ void checkTouch() {
 
   // if a touch is on a button, run the correct action for it
   for (uint8_t i = 0; i < maxButtons; i++) {
+
     Button btn;
     memcpy_P(&btn, buttons + i, sizeof(Button));
 
@@ -924,12 +921,13 @@ void doCommands() {
 
   activeDelay(50);  // debounce
 
-  menuOn = true; //2;
+  menuOn = true;  //  <<<--- was 2(?) previously;
 
   while (menuOn) {
 
     // check if the knob's button was pressed
     if (encoderButtonDown()) {
+
       Button btn;
       memcpy_P(&btn, buttons + select / 10, sizeof(Button));
 
@@ -948,6 +946,9 @@ void doCommands() {
         activeDelay(100);
 
       activeDelay(500);
+
+      menuOn = false;
+
       return;
     }
 
@@ -980,6 +981,8 @@ void doCommands() {
     activeDelay(50);
 
   activeDelay(50);
+
+  menuOn = false;
 
   checkCAT();
 }

@@ -38,7 +38,7 @@ ISR(PCINT1_vect)
   if (previousEncoderState == currentEncoderState)  // unnecessary ISR
     return;
 
-  // these transitions point to the enccoder being rotated anti-clockwise
+  // these transitions point to the encoder being rotated counter-clockwise
   if ((previousEncoderState == 0 && currentEncoderState == 2) ||
       (previousEncoderState == 2 && currentEncoderState == 3) ||
       (previousEncoderState == 3 && currentEncoderState == 1) ||
@@ -47,7 +47,7 @@ ISR(PCINT1_vect)
     encoderCount -= 1;
     encoderCountPeriodic -= 1;
   }
-  // these transitions point to the enccoder being rotated clockwise
+  // these transitions point to the encoder being rotated clockwise
   else if ((previousEncoderState == 0 && currentEncoderState == 1) ||
            (previousEncoderState == 1 && currentEncoderState == 3) ||
            (previousEncoderState == 3 && currentEncoderState == 2) ||
@@ -77,7 +77,7 @@ void encoderSetup() {
   encoderCount = 0;
   previousEncoderState = encoderState();
 
-  // Setup Pin Change Interrupts for the encoder inputs
+  // setup Pin Change Interrupts for the encoder inputs
   pciSetup(ENC_A);
   pciSetup(ENC_B);
 
@@ -116,7 +116,7 @@ int8_t minMomentumMag() {
 
 
 /*
-  returns the number of ticks in a short interval, +ve in clockwise, -ve in anti-clockwise
+  returns the number of ticks in a short interval, +ve in clockwise, -ve in counter-clockwise
 */
 int16_t encoderRead(void) {
 

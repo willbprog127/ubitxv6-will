@@ -158,16 +158,16 @@
   these are the parameter passed to startTx
 */
 #define TX_SSB 0
-#define TX_CW 1
+#define TX_CW  1
 
 /*
     The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
     We have to be very careful with variables that are declared inside the functions as they are
     created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
     if you declare large strings inside functions, they can easily exceed the capacity of the stack
-    and mess up your programs.
+    and corrupt your programs.
     *
-    We circumvent this by declaring a few global buffers as kitchen counters where we can
+    We circumvent this by declaring a few global buffers as 'kitchen counters' where we can
     slice and dice our strings. These strings are mostly used to control the display or handle
     the input and output from the USB port.
 */
@@ -176,9 +176,9 @@ extern char gbuffB[30];
 
 /*
    here's a special string you can use that displays at the bottom of the home screen
-   MUST fix within the char array's size or smaller (size can be customized, if needed)
+   (try to keep it as small as possible)
 */
-const char customString[19] = "AF7EC - Jesus rox!";
+const char customString[] = "AF7EC - Jesus rox!";  //  <<<--- was 19
 
 extern uint8_t vfoActive;
 
@@ -188,13 +188,10 @@ extern uint32_t sideTone;
 extern uint32_t usbCarrier;
 
 extern uint32_t frequency;
-// extern uint32_t ritRxFrequency;
 extern uint32_t ritTxFrequency;  // frequency is the current frequency on the dial
-// extern uint32_t firstIF;
+extern int32_t calibration;
 
 extern bool ritOn;
-// extern bool isUsbVfoA;
-// extern bool isUsbVfoB;
 extern bool cwMode;  // if cwMode is on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
 extern bool iambicKey;
 
@@ -202,24 +199,19 @@ extern bool iambicKey;
     these are variables that control the keyer behaviour
 */
 extern uint16_t cwSpeed;  // dot period in milliseconds
-extern int32_t calibration;
 extern uint16_t cwDelayTime;
-
 extern uint8_t keyerControl;
 
 /*
    Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
 */
-extern bool txCAT;            // turned on if the transmitting due to a CAT command
-extern bool inTx;                // it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
-extern bool splitOn;              // working split, uses VFO B as the transmit frequency
-extern bool isUSB;               // upper sideband was selected, this is reset to the default for the
-                                 // frequency when it crosses the frequency border of 10 MHz
-extern bool menuOn;              // set to true when the menu is being displayed, if a menu item sets it to false, the menu is exited
-// extern bool inTone;              // set to true when we're actively adjusting the cw sidetone frequency
-// extern bool inValByKnob;         // set to true when valueByKnob is running
-// extern bool endValByKnob;        // set to true when we want to end the valueByKnob process
-extern uint32_t cwTimeout;  // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
+extern bool txCAT;              // turned on if the transmitting due to a CAT command
+extern bool inTx;               // it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
+extern bool splitOn;            // working split, uses VFO B as the transmit frequency
+extern bool isUSB;              // upper sideband was selected, this is reset to the default for the
+                                //  frequency when it crosses the frequency border of 10 MHz
+extern bool menuOn;             // set to true when the menu is being displayed, if a menu item sets it to false, the menu is exited
+extern uint32_t cwTimeout;      // milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
 /* forward declarations of functions implemented in the main file, ubitx_xxx.ino */
 void activeDelay(uint16_t delay_by);
@@ -265,20 +257,20 @@ void doCommands();  // does the commands with encoder to jump from button to but
 void checkTouch(); // does the commands with a touch on the buttons
 
 /*
-  The main chip which generates upto three oscillators of various frequencies in the
+  The main chip which generates up to three oscillators of various frequencies in the
   Raduino is the Si5351a. To learn more about Si5351a you can download the datasheet
-  from www.silabs.com although, strictly speaking it is not a requirment to understand this code.
+  from www.silabs.com although, strictly speaking it is not a requirement to understand this code.
 
   We no longer use the standard SI5351 library because of its huge overhead due to many unused
   features consuming a lot of program space. Instead of depending on an external library we now use
   Jerry Gaffke's, KE7ER, lightweight standalone mimimalist "si5351bx" routines (see further down the
-  code). Here are some defines and declarations used by Jerry's routines:
+  code). Here are some declarations used by Jerry's routines:
 */
 
 /* forward declarations of functions in ubitx_si5351.cpp */
 void si5351bxSetFreq(uint8_t clknum, uint32_t fout);
 void initOscillators();
-void si5351_set_calibration(int32_t cal); // calibration is a small value that is nudged to make up for
-                                          // the inaccuracies of the reference 25 MHz crystal frequency
+void si5351SetCalibration(int32_t cal); // calibration is a small value that is nudged to make up for
+                                        //   the inaccuracies of the reference 25 MHz crystal frequency
 
 #endif // _UBITX_H_

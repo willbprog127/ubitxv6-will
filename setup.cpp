@@ -38,18 +38,18 @@ void setupFreq() {
 
   displayDialog("Set Frequency", "Push TUNE to Save");
 
-  // round off the the nearest khz
+  // round off to the nearest khz
   frequency = (frequency / 1000l) * 1000l;
   setFrequency(frequency);
 
-  displayRawText("You should have a", 20, 50, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
-  displayRawText("signal exactly at ", 20, 75, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  displayRawText("You should have a", 20, 50, DISPLAY_CYAN, DISPLAY_WILLBACK);
+  displayRawText("signal exactly at ", 20, 75, DISPLAY_CYAN, DISPLAY_WILLBACK);
 
   ltoa(frequency / 1000l, gbuffC, 10);
   strcat(gbuffC, " KHz");
-  displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_WILLBACK);
 
-  displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+  displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_WILLBACK);
 
   // keep clear of any previous button press
   while (encoderButtonDown())
@@ -59,6 +59,7 @@ void setupFreq() {
 
   calibration = 0;
 
+  // loop until the encoder button is pushed
   while (!encoderButtonDown())
   {
     knob = encoderRead();
@@ -68,21 +69,22 @@ void setupFreq() {
     else
       continue; // don't update the frequency or the display
 
-    si5351bxSetFreq(0, usbCarrier);  // set back the carrier oscillator anyway, cw tx switches it off
-    si5351_set_calibration(calibration);
+    si5351bxSetFreq(0, usbCarrier);  // set the carrier oscillator back, cw tx turns it off
+    si5351SetCalibration(calibration);
     setFrequency(frequency);
 
+    // display new calibration value
     ltoa(calibration, gbuffB, 10);
-    displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_WILLBACK, DISPLAY_WHITE); //DISPLAY_NAVY
+    displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_WILLBACK, DISPLAY_WHITE);
   }
 
   // store new value in eeprom
   EEPROM.put(MASTER_CAL, calibration);
 
-  // initialize the oscillators
+  // reset the oscillators
   initOscillators();
 
-  si5351_set_calibration(calibration);
+  si5351SetCalibration(calibration);
 
   setFrequency(frequency);
 
@@ -105,7 +107,9 @@ void setupBFO() {
   si5351bxSetFreq(0, usbCarrier);
   printCarrierFreq(usbCarrier);
 
+  // loop until the encoder button is pushed
   while (!encoderButtonDown()) {
+
     knob = encoderRead();
 
     if (knob != 0)
@@ -115,6 +119,8 @@ void setupBFO() {
 
     si5351bxSetFreq(0, usbCarrier);
     setFrequency(frequency);
+
+    // display new bfo value
     printCarrierFreq(usbCarrier);
 
     activeDelay(100);
@@ -129,6 +135,7 @@ void setupBFO() {
 
   // updateDisplay(); // <<<---
   displayVFO(vfoActive);
+
   menuOn = false;
 }
 
@@ -146,6 +153,7 @@ void setupCwDelay() {
   strcat(gbuffB, " msec");
   displayText(gbuffB, 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
 
+  // loop until the encoder button is pushed
   while (!encoderButtonDown()) {
     knob = encoderRead();
 
@@ -188,10 +196,11 @@ void setupKeyer() {
   if (!iambicKey)
     tmp_key = 0;  // hand key
   else if (keyerControl & IAMBICB)
-    tmp_key = 2;  // Iambic B
+    tmp_key = 2;  // iambic B
   else
     tmp_key = 1;
 
+  // loop until the encoder button is pushed
   while (!encoderButtonDown()) {
     knob = encoderRead();
 
@@ -258,7 +267,7 @@ void drawSetupMenu() {
 void movePuck(int16_t i) {
 
   if (prevPuck >= 0)
-    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK); // DISPLAY_NAVY);
+    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK);
 
   displayRect(15, 49 + (i * 30), 290, 25, DISPLAY_WHITE);
 
@@ -284,6 +293,7 @@ void doSetupMenu() {
   menuOn = true; //2;
 
   while (menuOn) {
+
     i = encoderRead();
 
     if (i > 0) {

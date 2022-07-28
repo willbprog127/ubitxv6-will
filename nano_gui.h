@@ -56,7 +56,6 @@ void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h
 
 /* touch functions */
 bool readTouch();
-
 void doTouchCalibration();
 void scaleTouch(struct Point * p);
 

@@ -6,7 +6,7 @@
 
 #include "ubitx.h"
 
-/* *************  SI5315 routines - tks Jerry Gaffke, KE7ER   ***********************
+/* *************  SI5315 routines - thanks Jerry Gaffke, KE7ER   ***********************
    An minimalist standalone set of Si5351 routines.
    VCOA is fixed at 875 MHz, VCOB not used.
    The output msynth dividers are used to generate 3 independent clocks
@@ -19,18 +19,18 @@
    A freq of 0 serves to shut down that output clock.
 
    The global variable si5351bxVCOA starts out equal to the nominal VCOA
-   frequency of 25 MHz * 35 = 875000000 Hz.  To correct for 25 MHz crystal errors,
+   frequency of 25 MHz * 35 = 875,000,000 Hz.  To correct for 25 MHz crystal errors,
    the user can adjust this value.  The vco frequency will not change but
    the number used for the (a + b / c) output msynth calculations is affected.
-   Example:  We call for a 5 mhz signal, but it measures to be 5.001 MHz.
+   Example:  We call for a 5 MHz signal, but it measures to be 5.001 MHz.
    So the actual vcoa frequency is 875 MHz * 5.001 / 5.000 = 875,175,000 Hz,
-   To correct for this error:  si5351bxVCOA = 875175000;
+   To correct for this error:  si5351bxVCOA = 875,175,000;
 
    Most users will never need to generate clocks below 500 KHz.
    But it is possible to do so by loading a value between 0 and 7 into
    the global variable si5351bxRDiv, be sure to return it to a value of 0
    before setting some other CLK output pin.  The affected clock will be
-   divided down by a power of two defined by 2 ** si5351_rdiv
+   divided down by a power of two defined by 2 ** si5351bxRDiv
    A value of zero gives a divide factor of 1, a value of 7 divides by 128.
    This lightweight method is a reasonable compromise for a seldom used feature.
 */
@@ -42,7 +42,7 @@
 #define SI5351BX_ADDR   0x60            // I2C address of Si5351 (typical)
 #define SI5351BX_XTALPF 2               // 1 = 6 pf,  2 = 8pf,  3 = 10pf
 
-/* if using 27 MHz crystal, set XTAL = 27000000, MSA = 33.  Then vco = 891 MHz */
+/* if using 27 MHz crystal, set _XTAL = 27000000, _MSA = 33.  Then vco = 891 MHz */
 #define SI5351BX_XTAL 25000000          // crystal freq in Hz
 #define SI5351BX_MSA  35                // VCOA is at 25 MHz * 35 = 875 MHz
 
@@ -86,11 +86,13 @@ void si5351bxInit() {
 
   Wire.begin();
 
-  i2cWrite(149, 0);                     // SpreadSpectrum off
-  i2cWrite(3, si5351bxClkEnable);          // Disable all CLK output drivers
-  i2cWrite(183, SI5351BX_XTALPF << 6);  // Set 25mhz crystal load capacitance
-  msxp1 = 128 * SI5351BX_MSA - 512;     // and msxp2=0, msxp3=1, not fractional
+  i2cWrite(149, 0);                     // spreadSpectrum off
+  i2cWrite(3, si5351bxClkEnable);       // disable all CLK output drivers
+  i2cWrite(183, SI5351BX_XTALPF << 6);  // set 25 MHz crystal load capacitance
+  msxp1 = 128 * SI5351BX_MSA - 512;     // and msxp2 = 0, msxp3 = 1, not fractional
+
   uint8_t vals[8] = {0, 1, BB2(msxp1), BB1(msxp1), BB0(msxp1), 0, 0, 0};
+
   i2cWriten(26, vals, 8);               // Write to 8 PLLA msynth regs
   i2cWrite(177, 0x20);                  // Reset PLLA  (0x80 resets PLLB)
 
@@ -111,7 +113,7 @@ void si5351bxSetFreq(uint8_t clknum, uint32_t fout) {
   uint32_t msxp2;
   uint32_t msxp3p2top;
 
-  if ((fout < 500000) || (fout > 109000000)) // If clock freq out of range
+  if ((fout < 500000) || (fout > 109000000)) // if clock freq out of range
     si5351bxClkEnable |= 1 << clknum;      //  shut down the clock
   else {
     msa = si5351bxVCOA / fout;   // Integer part of vco/fout
@@ -140,7 +142,7 @@ void si5351bxSetFreq(uint8_t clknum, uint32_t fout) {
 
 
 /* apply the calibration correction factor */
-void si5351_set_calibration(int32_t cal) {
+void si5351SetCalibration(int32_t cal) {
   si5351bxVCOA = (SI5351BX_XTAL * SI5351BX_MSA) + cal;
   si5351bxSetFreq(0, usbCarrier);
 }

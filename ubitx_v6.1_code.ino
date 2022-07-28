@@ -19,9 +19,9 @@
     We have to be very careful with variables that are declared inside the functions as they are
     created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
     if you declare large strings inside functions, they can easily exceed the capacity of the stack
-    and mess up your programs.
+    and corrupt your programs.
 
-    We circumvent this by declaring a couple of global buffers as kitchen counters where we can
+    We circumvent this by declaring a couple of global buffers as 'kitchen counters' where we can
     slice and dice our strings. These strings are mostly used to control the display or handle
     the input and output from the USB port.
 */
@@ -39,18 +39,17 @@ uint32_t frequency;
 uint32_t ritRxFrequency;
 uint32_t ritTxFrequency;  // frequency is the current frequency on the dial
 uint32_t firstIF = 45005000L;
+int32_t calibration = 0;
 
 bool ritOn = false;
 bool isUsbVfoA = false;
 bool isUsbVfoB = true;
-bool cwMode = false; // if cwMode is flipped on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
+bool cwMode = false; // if cwMode is on, the rx frequency is tuned down by sidetone hz instead of being zerobeat
 
-/* these are variables that control the keyer behaviour */
+/* these are variables that control the keyer behavior */
 uint16_t cwSpeed = 100;  // dot period in milliseconds
-int32_t calibration = 0;
 uint16_t cwDelayTime = 60;
 bool iambicKey = true;
-
 uint8_t keyerControl = IAMBICB;
 
 /*
@@ -505,9 +504,9 @@ void doRITTuning() {
 
 
 /*
-   The settings are read from EEPROM. The first time around, the values may not be
-   present or out of range, in this case, some intelligent defaults are copied into the
-   variables.
+   settings are read from EEPROM. The first time around, the values may not be
+   present or out of range, in this case, some sane defaults are copied into the
+   variables
 */
 void initSettings() {
 
@@ -537,7 +536,7 @@ void initSettings() {
     cwDelayTime = 50;
 
 
-  // The VFO modes are read in as either 2 (USB) or 3(LSB), 0, the default
+  // the VFO modes are read in as either 2 (USB) or 3(LSB), 0, the default
   // is taken as 'uninitialized'
   EEPROM.get(VFO_A_MODE, value);
 
@@ -604,12 +603,7 @@ void initPins() {
   pinMode(ENC_B, INPUT_PULLUP);
   pinMode(FBUTTON, INPUT_PULLUP);
 
-  // configure the function button to use the external pull-up
-  //  pinMode(FBUTTON, INPUT);
-  //  digitalWrite(FBUTTON, HIGH);
-
   pinMode(PTT, INPUT_PULLUP);
-  //  pinMode(ANALOG_KEYER, INPUT_PULLUP);
 
   pinMode(PIN_CW_TONE, OUTPUT);
   digitalWrite(PIN_CW_TONE, 0);
