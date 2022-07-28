@@ -1,3 +1,10 @@
+# CAUTION! #
+## Currently NOT working when loaded on the radio -- proceed at your own risk! ##
+
+
+---
+
+
 # uBitx v6
 ## uBitx v6.3.1 Arduino sketch
 A fork of Ashhar Farhan's v6 sketch.  A work in progress, so be aware it may not work properly at times.  I will be customizing this to my own
