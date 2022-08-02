@@ -1,5 +1,5 @@
-# CAUTION! #
-## Currently NOT working when loaded on the radio -- proceed at your own risk! ##
+## Current Status ##
+Code **IS** compiling and working on radio
 
 
 ---
