@@ -131,9 +131,6 @@ static void touchUpdate() {
   int16_t z = z1 + 4095;
   int16_t z2 = SPI.transfer16(0x91) >> 3;  // X
 
-  int16_t x = touchBestTwoAvg(data[0], data[2], data[4]);
-  int16_t y = touchBestTwoAvg(data[1], data[3], data[5]);
-
   z -= z2;
 
   if (z >= zThreshold) {
@@ -162,6 +159,9 @@ static void touchUpdate() {
 
   zraw = z;
 
+  int16_t x = touchBestTwoAvg(data[0], data[2], data[4]);
+  int16_t y = touchBestTwoAvg(data[1], data[3], data[5]);
+
   // good read completed, set wait
   if (z >= zThreshold) {
     msraw = now;
@@ -180,6 +180,7 @@ bool readTouch() {
   if (zraw >= zThreshold) {
     tsPoint.x = xraw;
     tsPoint.y = yraw;
+
     return true;
   }
 
