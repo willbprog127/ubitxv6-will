@@ -47,7 +47,7 @@ const struct Button buttons[maxButtons] PROGMEM = {
 
   {0, 160, 60, 36, "15"},  // , "5"},
   {64, 160, 60, 36, "10"},  // , "1"},
-  {128, 160, 60, 36, "WPM"},  // , "W"},
+  {128, 160, 60, 36, "SPD"},  // , "W"},
   {192, 160, 60, 36, "TON"},  // , "T"},
   {256, 160, 60, 36, "FRQ"}  // , "F"},
 };
@@ -101,13 +101,13 @@ void btnDraw(Button * btn) {
            (!strcmp(btn->text, "LSB") && isUSB == false)      ||
            (!strcmp(btn->text, "SPL") && splitOn == true)     ||
            (!strcmp(btn->text, "TON") && inTone == true)      ||
-           (!strcmp(btn->text, "WPM") && inValByKnob == true) ||
+           (!strcmp(btn->text, "SPD") && inValByKnob == true) ||
            (!strcmp(btn->text, "CW")  && cwMode == true) )
     // display 'reverse' button, indicating an 'on' or 'enabled' condition
     displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_ORANGE, DISPLAY_ORANGE);
   else
     // display normal button
-    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_DIMGOLD, DISPLAY_BLACK, DISPLAY_DARKGREY, DISPLAY_3DBOTTOM);  // DISPLAY_GREEN // <<<---
+    displayText(btn->text, btn->x, btn->y, btn->w, btn->h, DISPLAY_DIMGOLD, DISPLAY_BLACK, DISPLAY_DARKGREY, DISPLAY_3DBOTTOM);
 }
 
 
@@ -295,7 +295,7 @@ void displayVFO(uint8_t vfo) {  // was int vfo
       formatFreq(frequency, gbuffC + 2);
       displayColor = DISPLAY_WHITE;
     } else {
-      displayColor = DISPLAY_DIMGOLD;   // DISPLAY_GREEN; // <<<---
+      displayColor = DISPLAY_DIMGOLD;
       formatFreq(vfoB, gbuffC + 2);
     }
   }
@@ -303,13 +303,13 @@ void displayVFO(uint8_t vfo) {  // was int vfo
   // black out vfo button only if first char of vfoDisplay is "\0"
   if (vfoDisplay[0] == 0) {
 
-    displayFillrect(btn.x, btn.y, btn.w, btn.h, DISPLAY_BLACK);  //  <<<---
+    displayFillrect(btn.x, btn.y, btn.w, btn.h, DISPLAY_BLACK);
 
     // display highlight rectangle around vfo button if it's active
     if (vfoActive == vfo)
-      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WHITE, DISPLAY_3DBOTTOM);
+      displayRect(btn.x, btn.y, btn.w, btn.h, DISPLAY_WHITE, DISPLAY_3DBOTTOM);
     else
-      displayRect(btn.x, btn.y, btn.w , btn.h, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+      displayRect(btn.x, btn.y, btn.w, btn.h, DISPLAY_WILLBACK);
   }
 
   uint8_t cleanWidth = 16;
@@ -441,7 +441,7 @@ void enterFreq() {
   memset(gbuffC, 0, sizeof(gbuffC));
 
   while (true) {
-    checkCAT();
+    checkCAT();  //  <<<--- the cat is okay, I PROMISE!!!
 
     if (!readTouch())
       continue;
@@ -449,6 +449,7 @@ void enterFreq() {
     scaleTouch(&tsPoint);
 
     for (uint8_t i = 0; i < maxKeys; i++) {
+
       Button btn2;
       memcpy_P(&btn2, keypad + i, sizeof(Button));
 
@@ -460,6 +461,7 @@ void enterFreq() {
 
         // we're done
         if (!strcmp(btn2.text, "OK")) {
+
           long frq = atol(gbuffC);
 
           // update the frequency if entered value is valid
@@ -508,15 +510,13 @@ void enterFreq() {
     // display frequency entered so far -- if any
     strcpy(gbuffB, gbuffC);
     strcat(gbuffB, " KHz");
-    displayText(gbuffB, 0, 48, 320, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK); //DISPLAY_NAVY, DISPLAY_NAVY);
+    displayText(gbuffB, 0, 48, 320, 30, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WILLBACK);
 
     delay(300);
 
     while (readTouch())
       checkCAT();
   } // end of event loop : while(true)
-
-  // we should never reach this spot!!
 }
 
 
@@ -546,7 +546,8 @@ void drawTx() {
   if (inTx)
     displayText("TX", 280, 48, 37, 28, DISPLAY_BLACK, DISPLAY_ORANGE, DISPLAY_BLUE);
   else
-    displayFillrect(280, 48, 37, 28, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+    // displayFillrect(280, 48, 37, 28, DISPLAY_WILLBACK); //DISPLAY_NAVY);
+    clearCommandbar();
 }
 
 
@@ -577,7 +578,9 @@ void guiUpdate(bool clearScreen, bool refreshVFOs) {
   }
 
   checkCAT();  // <<<---
-  drawStatusbar();
+
+  if (clearScreen == true)
+    drawStatusbar();
 
   //checkCAT();
 }
@@ -648,12 +651,12 @@ void cwToggle(Button * btn) {
 void sidebandToggle(Button * btn1) {
 
   if (!strcmp(btn1->text, "LSB")) {
-    if (isUSB == false)  //  <<<--- keep - seems extraneous, but saves drawing time overall
+    if (isUSB == false)  //  <<<--- keep - saves drawing time
       return;
 
     isUSB = false;
   } else {
-    if (isUSB == true)  //  <<<--- keep - seems extraneous, but saves drawing time overall
+    if (isUSB == true)  //  <<<--- keep - saves drawing time
       return;
 
     isUSB = true;
@@ -725,7 +728,7 @@ void setCwSpeed() {  // <<<--- Was int, changed to void
   uint16_t wpm;  // <<<--- was int
 
   Button btn;
-  getButton("WPM", &btn);
+  getButton("SPD", &btn);
 
   if (inValByKnob == false) {
 
@@ -825,14 +828,12 @@ void doCommand(Button * btn) {
     splitToggle(btn);
   else if (!strcmp(btn->text, "A")) {
     if (vfoActive == VFO_A)
-      //fastTune();  // <<<--- no thank you -- too easy to trigger
       return;
     else
       switchVFO(VFO_A);
   }
   else if (!strcmp(btn->text, "B")) {
     if (vfoActive == VFO_B)
-      //fastTune();  // <<<--- no thank you -- too easy to trigger
       return;
     else
       switchVFO(VFO_B);
@@ -842,7 +843,7 @@ void doCommand(Button * btn) {
   else if (!strcmp(btn->text, "40"))
     switchBand(7000000l);
   else if (!strcmp(btn->text, "30"))
-    switchBand(10000000l);
+    switchBand(10100000l);   //   <<<--- was 10000000l
   else if (!strcmp(btn->text, "20"))
     switchBand(14000000l);
   else if (!strcmp(btn->text, "17"))
@@ -855,7 +856,7 @@ void doCommand(Button * btn) {
     switchBand(28000000l);
   else if (!strcmp(btn->text, "FRQ"))
     enterFreq();
-  else if (!strcmp(btn->text, "WPM"))
+  else if (!strcmp(btn->text, "SPD"))
     setCwSpeed();
   else if (!strcmp(btn->text, "TON"))
     setCwTone();

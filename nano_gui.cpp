@@ -342,10 +342,16 @@ void displayRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t hicolo
   if (lowcolor == 0)
     lowcolor = hicolor;
 
-  displayHline(x, y, w, hicolor);
-  displayHline(x, y + h, w, lowcolor);
-  displayVline(x, y, h, hicolor);
-  displayVline(x + w, y, h, lowcolor);
+  //displayHline(x, y, w, hicolor);
+  //displayHline(x, y + h, w, lowcolor);
+  //displayVline(x, y, h, hicolor);
+  //displayVline(x + w, y, h, lowcolor);
+
+  displayHline(x + 1, y, w - 2, hicolor);
+  displayHline(x + 1, y + h, w - 2, lowcolor);
+  displayVline(x, y + 1, h - 2, hicolor);
+  displayVline(x + w, y + 1, h - 2, lowcolor);
+
 }
 
 
@@ -571,7 +577,7 @@ void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h
     lowerborder = upperborder;
 
   displayFillrect(x1, y1, w , h, background);  // fill in area where text will be
-  displayRect(x1, y1, w , h, upperborder, lowerborder);
+  // displayRect(x1, y1, w , h, upperborder, lowerborder);  //  <<<--- test test test test
 
   x1 += (w - displayTextExtent(text)) / 2;
   y1 += (h - textLineHeight) / 2;
@@ -583,6 +589,7 @@ void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h
 
     if ((c >= first) && (c <= (uint8_t)pgm_read_byte(&gfxFont->last))) {
       GFXglyph * glyph  = pgmReadGlyphPtr(gfxFont, c - first);
+
       uint8_t ww = pgm_read_byte(&glyph->width);
       uint8_t hh = pgm_read_byte(&glyph->height);
 

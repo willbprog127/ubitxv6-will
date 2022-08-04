@@ -254,12 +254,12 @@ void drawSetupMenu() {
   displayText("Setup", 10, 10, 300, 35, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WHITE);
   displayRect(10, 10, 300, 220, DISPLAY_WHITE);
 
-  displayRawText("Set Freq...", 30, 50, DISPLAY_WHITE, DISPLAY_WILLBACK);
-  displayRawText("Set BFO...", 30, 80, DISPLAY_WHITE, DISPLAY_WILLBACK);
-  displayRawText("CW Delay...", 30, 110, DISPLAY_WHITE, DISPLAY_WILLBACK);
-  displayRawText("CW Keyer...", 30, 140, DISPLAY_WHITE, DISPLAY_WILLBACK);
-  displayRawText("Touch Screen...", 30, 170, DISPLAY_WHITE, DISPLAY_WILLBACK);
-  displayRawText("Exit", 30, 200, DISPLAY_WHITE, DISPLAY_WILLBACK);
+  displayRawText("Set Freq...", 30, 50, DISPLAY_WHITE, DISPLAY_BLACK);
+  displayRawText("Set BFO...", 30, 80, DISPLAY_WHITE, DISPLAY_BLACK);
+  displayRawText("CW Delay...", 30, 110, DISPLAY_WHITE, DISPLAY_BLACK);
+  displayRawText("CW Keyer...", 30, 140, DISPLAY_WHITE, DISPLAY_BLACK);
+  displayRawText("Touch Screen...", 30, 170, DISPLAY_WHITE, DISPLAY_BLACK);
+  displayRawText("Exit", 30, 200, DISPLAY_WHITE, DISPLAY_BLACK);
 }
 
 
@@ -267,15 +267,15 @@ void drawSetupMenu() {
 void movePuck(int16_t i) {
 
   if (prevPuck >= 0)
-    displayRect(15, 49 + (prevPuck * 30), 290, 25, DISPLAY_WILLBACK);
+    displayRect(15, 45 + (prevPuck * 30), 290, 30, DISPLAY_BLACK); // y was 49  // height was 25
 
-  displayRect(15, 49 + (i * 30), 290, 25, DISPLAY_WHITE);
+  displayRect(15, 45 + (i * 30), 290, 30, DISPLAY_WHITE);  // y was 49  // height was 25
 
   prevPuck = i;
 }
 
 
-/* */
+/* displays radio's setup menu */
 void doSetupMenu() {
 
   int16_t select = 0;
@@ -343,5 +343,5 @@ void doSetupMenu() {
 
   checkCAT();
 
-  guiUpdate(true);
+  guiUpdate(true, true);
 }

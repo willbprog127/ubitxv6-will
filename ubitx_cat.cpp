@@ -495,7 +495,7 @@ void checkCAT() {
   /*
     if (!doingCAT) {
       doingCAT = 1;
-      displayText("CAT on", 100,120,100,40, ILI9341_ORANGE, ILI9341_BLACK, ILI9341_WHITE);
+      displayText("CAT on", 100, 120, 100, 40, ILI9341_ORANGE, ILI9341_BLACK, ILI9341_WHITE);
     }
   */
   processCATCommand2(cat);

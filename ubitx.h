@@ -125,11 +125,11 @@
 #define VFO_A_MODE  256 // 2: LSB, 3: USB
 #define VFO_B_MODE  257
 
-//values that are stored for the VFO modes
+/* values that are stored for the VFO modes */
 #define VFO_MODE_LSB 2
 #define VFO_MODE_USB 3
 
-// handkey, iambic a, iambic b : 0, 1, 2f
+/* handkey, iambic a, iambic b : 0, 1, 2f */
 #define CW_KEY_TYPE 358
 #define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
 

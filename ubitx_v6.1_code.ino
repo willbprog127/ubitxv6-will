@@ -109,6 +109,7 @@ void saveVFOs() {
     EEPROM.put(VFO_B_MODE, VFO_MODE_LSB);
 }
 
+
 /*
    Select the properly tx harmonic filters
    The four harmonic filters use only three relays
