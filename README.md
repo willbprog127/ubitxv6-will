@@ -20,7 +20,8 @@ Most notes and important variables are mentioned in `ubitx.h`
 * Command-bar text shouldn't wipe out other buttons, text, etc now
 * Code formatted to my specs (feel free to fork and change per your taste)
 
-![ubitx - 2022-07-04 screenshot-cropped](https://user-images.githubusercontent.com/1296250/177121495-059c5d6b-81ff-4742-bf74-0be9ca47e6cb.jpg)
+![ubitxv6-will-screen-02](https://user-images.githubusercontent.com/1296250/182975745-c70ca111-0a67-4c24-9fe5-767fa54e7630.jpg)
+
 
 ---
 
