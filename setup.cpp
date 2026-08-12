@@ -5,7 +5,6 @@
 */
 
 #include <EEPROM.h>
-// #include "morse.h"
 #include "ubitx.h"
 #include "nano_gui.h"
 
@@ -24,32 +23,33 @@
     - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
 */
 
+/* global variables */
+
 /* these are used by the si5351 routines in the ubitx_5351 file */
-extern int32_t calibration;
-extern uint32_t si5351bxVCOA;
+extern int32_t g_calibration;
 
-static int16_t prevPuck = -1;
-
+/* file-level variables */
+static int16_t m_prevPuck = -1;
 
 /* frequency calibration */
-void setupFreq() {
-
+void setupFreq ()
+{
   int16_t knob = 0;
 
   displayDialog("Set Frequency", "Push TUNE to Save");
 
   // round off to the nearest khz
-  frequency = (frequency / 1000l) * 1000l;
-  setFrequency(frequency);
+  g_frequency = (g_frequency / 1000l) * 1000l;
+  setFrequency(g_frequency);
 
-  displayRawText("You should have a", 20, 50, DISPLAY_CYAN, DISPLAY_WILLBACK);
-  displayRawText("signal exactly at ", 20, 75, DISPLAY_CYAN, DISPLAY_WILLBACK);
+  drawRawText("You should have a", 20, 53, G_DISPLAY_CYAN, G_DISPLAY_NEWBACK);
+  drawRawText("signal exactly at ", 20, 77, G_DISPLAY_CYAN, G_DISPLAY_NEWBACK);
 
-  ltoa(frequency / 1000l, gbuffC, 10);
-  strcat(gbuffC, " KHz");
-  displayRawText(gbuffC, 20, 100, DISPLAY_CYAN, DISPLAY_WILLBACK);
+  ltoa(g_frequency / 1000l, g_buffC, 10);
+  strcat(g_buffC, " KHz");
+  drawRawText(g_buffC, 20, 107, G_DISPLAY_CYAN, G_DISPLAY_NEWBACK);
 
-  displayRawText("Rotate to zerobeat", 20, 180, DISPLAY_CYAN, DISPLAY_WILLBACK);
+  drawRawText("Rotate to zero-beat", 20, 176, G_DISPLAY_CYAN, G_DISPLAY_NEWBACK);
 
   // keep clear of any previous button press
   while (encoderButtonDown())
@@ -57,7 +57,7 @@ void setupFreq() {
 
   activeDelay(100);
 
-  calibration = 0;
+  g_calibration = 0;
 
   // loop until the encoder button is pushed
   while (!encoderButtonDown())
@@ -65,28 +65,29 @@ void setupFreq() {
     knob = encoderRead();
 
     if (knob != 0)
-      calibration += knob * 875;
+      g_calibration += knob * 875;
     else
-      continue; // don't update the frequency or the display
+      continue;  // don't update the frequency or the display
 
-    si5351bxSetFreq(0, usbCarrier);  // set the carrier oscillator back, cw tx turns it off
-    si5351SetCalibration(calibration);
-    setFrequency(frequency);
+    si5351bxSetFreq(0, g_usbCarrier);  // set the carrier oscillator back, CW TX turns it off
+    si5351SetCalibration(g_calibration);
+    setFrequency(g_frequency);
 
     // display new calibration value
-    ltoa(calibration, gbuffB, 10);
-    displayText(gbuffB, 100, 140, 100, 26, DISPLAY_CYAN, DISPLAY_WILLBACK, DISPLAY_WHITE);
+    ltoa(g_calibration, g_buffB, 10);
+
+    drawTextWithRectFilled(g_buffB, 80, 135, 160, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
   }
 
   // store new value in eeprom
-  EEPROM.put(MASTER_CAL, calibration);
+  EEPROM.put(MASTER_CAL, g_calibration);
 
   // reset the oscillators
   initOscillators();
 
-  si5351SetCalibration(calibration);
+  si5351SetCalibration(g_calibration);
 
-  setFrequency(frequency);
+  setFrequency(g_frequency);
 
   // debounce
   while (encoderButtonDown())
@@ -95,189 +96,186 @@ void setupFreq() {
   activeDelay(100);
 }
 
-
 /* set BFO adjustment */
-void setupBFO() {
-
+void setupBFO ()
+{
   int16_t knob = 0;
 
   displayDialog("Set BFO", "Press TUNE to Save");
 
-  usbCarrier = 11053000l;
-  si5351bxSetFreq(0, usbCarrier);
-  printCarrierFreq(usbCarrier);
+  g_usbCarrier = 11053000l;
+  si5351bxSetFreq(0, g_usbCarrier);
+  printCarrierFreq(g_usbCarrier);
 
   // loop until the encoder button is pushed
-  while (!encoderButtonDown()) {
-
+  while (!encoderButtonDown())
+  {
     knob = encoderRead();
 
     if (knob != 0)
-      usbCarrier -= 50 * knob;
+      g_usbCarrier -= 50 * knob;
     else
-      continue; // don't update the frequency or the display
+      continue;  // don't update the frequency or the display
 
-    si5351bxSetFreq(0, usbCarrier);
-    setFrequency(frequency);
+    si5351bxSetFreq(0, g_usbCarrier);
+    setFrequency(g_frequency);
 
     // display new bfo value
-    printCarrierFreq(usbCarrier);
+    printCarrierFreq(g_usbCarrier);
 
     activeDelay(100);
   }
 
   // store new value in eeprom
-  EEPROM.put(USB_CAL, usbCarrier);
+  EEPROM.put(USB_CAL, g_usbCarrier);
 
-  si5351bxSetFreq(0, usbCarrier);
+  si5351bxSetFreq(0, g_usbCarrier);
 
-  setFrequency(frequency);
+  setFrequency(g_frequency);
 
-  // updateDisplay(); // <<<---
-  displayVFO(vfoActive);
+  displayVFO(g_vfoActive);
 
-  menuOn = false;
+  g_menuOn = false;
 }
 
-
 /* sets CW transmit / receive delay */
-void setupCwDelay() {
-
+static void setupCwDelay ()
+{
   int16_t knob = 0;
 
   displayDialog("Set CW T/R Delay", "Press tune to Save");
 
   activeDelay(500);
 
-  itoa(10 * (int16_t)cwDelayTime, gbuffB, 10);
-  strcat(gbuffB, " msec");
-  displayText(gbuffB, 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
+  itoa(10 * (int16_t)g_cwDelayTime, g_buffB, 10);
+  strcat(g_buffB, " msec");
+  drawTextWithRectFilled(g_buffB, 80, 110, 160, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
 
   // loop until the encoder button is pushed
-  while (!encoderButtonDown()) {
+  while (!encoderButtonDown())
+  {
     knob = encoderRead();
 
-    if (knob < 0 && cwDelayTime > 10)
-      cwDelayTime -= 10;
-    else if (knob > 0 && cwDelayTime < 100)
-      cwDelayTime += 10;
+    if (knob < 0 && g_cwDelayTime > 10)
+      g_cwDelayTime -= 10;
+    else if (knob > 0 && g_cwDelayTime < 100)
+      g_cwDelayTime += 10;
     else
-      continue; // don't update the frequency or the display
+      continue;  // don't update the frequency or the display
 
-    itoa(10 * (int16_t)cwDelayTime, gbuffB, 10);
-    strcat(gbuffB, " msec");
-    displayText(gbuffB, 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
+    itoa(10 * (int16_t)g_cwDelayTime, g_buffB, 10);
+    strcat(g_buffB, " msec");
+    drawTextWithRectFilled(g_buffB, 80, 110, 160, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
   }
 
   // store new value in eeprom
-  EEPROM.put(CW_DELAYTIME, cwDelayTime);
+  EEPROM.put(CW_DELAYTIME, g_cwDelayTime);
 
   activeDelay(500);
 
-  menuOn = false;
+  g_menuOn = false;
 }
 
-
 /* set up keyer type */
-void setupKeyer() {
-
-  int16_t tmp_key;
+static void setupKeyer ()
+{
+  int8_t keyTemp;
   int16_t knob;
 
   displayDialog("Set CW Keyer", "Press tune to Save");
 
-  if (!iambicKey)
-    displayText("< Hand Key >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
-  else if (keyerControl & IAMBICB)
-    displayText("< Iambic A >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
+  if (!g_iambicKey)
+    drawTextWithRectFilled("< Hand Key >", 60, 110, 195, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
+  else if (g_keyerControl & IAMBICB)
+    drawTextWithRectFilled("< Iambic A >", 60, 110, 195, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
   else
-    displayText("< Iambic B >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
+    drawTextWithRectFilled("< Iambic B >", 60, 110, 195, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);
 
-  if (!iambicKey)
-    tmp_key = 0;  // hand key
-  else if (keyerControl & IAMBICB)
-    tmp_key = 2;  // iambic B
+  if (!g_iambicKey)
+    keyTemp = 0;  // hand key
+  else if (g_keyerControl & IAMBICB)
+    keyTemp = 2;  // iambic B
   else
-    tmp_key = 1;
+    keyTemp = 1;
 
   // loop until the encoder button is pushed
-  while (!encoderButtonDown()) {
+  while (!encoderButtonDown())
+  {
     knob = encoderRead();
 
-    if (knob == 0) {
+    if (knob == 0)
+    {
       activeDelay(50);
       continue;
     }
 
-    if (knob < 0 && tmp_key > 0)
-      tmp_key--;
+    if (knob < 0 && keyTemp > 0)
+      keyTemp--;
 
     if (knob > 0)
-      tmp_key++;
+      keyTemp++;
 
-    if (tmp_key > 2)
-      tmp_key = 0;
+    if (keyTemp > 2)
+      keyTemp = 0;
 
-    if (tmp_key == 0)
-      displayText("< Hand Key >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
-    else if (tmp_key == 1)
-      displayText("< Iambic A >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
-    else if (tmp_key == 2)
-      displayText("< Iambic B >", 100, 100, 120, 26, DISPLAY_CYAN, DISPLAY_BLACK, DISPLAY_BLACK);
+    if (keyTemp == 0)
+      drawTextWithRectFilled("< Hand Key >", 60, 110, 195, 35,  G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);  //, 100, 100, 120, 26, G_DISPLAY_CYAN, G_DISPLAY_BLACK, G_DISPLAY_BLACK);
+    else if (keyTemp == 1)
+      drawTextWithRectFilled("< Iambic A >", 60, 110, 195, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);  //, 100, 100, 120, 26, G_DISPLAY_CYAN, G_DISPLAY_BLACK, G_DISPLAY_BLACK);
+    else if (keyTemp == 2)
+      drawTextWithRectFilled("< Iambic B >", 60, 110, 195, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_CYAN);  //, 100, 100, 120, 26, G_DISPLAY_CYAN, G_DISPLAY_BLACK, G_DISPLAY_BLACK);
   }
 
   activeDelay(500);
 
-  if (tmp_key == 0)
-    iambicKey = false;
-  else if (tmp_key == 1) {
-    iambicKey = true;
-    keyerControl &= ~IAMBICB;
+  if (keyTemp == 0)
+    g_iambicKey = false;
+  else if (keyTemp == 1)
+  {
+    g_iambicKey = true;
+    g_keyerControl &= ~IAMBICB;
   }
-  else if (tmp_key == 2) {
-    iambicKey = true;
-    keyerControl |= IAMBICB;
+  else if (keyTemp == 2) {
+    g_iambicKey = true;
+    g_keyerControl |= IAMBICB;
   }
 
   // store new value in eeprom
-  EEPROM.put(CW_KEY_TYPE, tmp_key);
+  EEPROM.put(CW_KEY_TYPE, keyTemp);
 
-  menuOn = false;
+  g_menuOn = false;
 }
-
 
 /* shows setup menu */
-void drawSetupMenu() {
+static void drawSetupMenu ()
+{
+  displayClear(G_DISPLAY_NEWBACK);
 
-  displayClear(DISPLAY_BLACK);
+  drawTextWithRectFilled("Setup", 10, 10, 300, 35, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK, G_DISPLAY_NEWBACK); // heading
+  drawRectNoFill(10, 10, 300, 220, G_DISPLAY_LIGHTGREY);  // screen border
 
-  displayText("Setup", 10, 10, 300, 35, DISPLAY_WHITE, DISPLAY_WILLBACK, DISPLAY_WHITE);
-  displayRect(10, 10, 300, 220, DISPLAY_WHITE);
-
-  displayRawText("Set Freq...", 30, 50, DISPLAY_WHITE, DISPLAY_BLACK);
-  displayRawText("Set BFO...", 30, 80, DISPLAY_WHITE, DISPLAY_BLACK);
-  displayRawText("CW Delay...", 30, 110, DISPLAY_WHITE, DISPLAY_BLACK);
-  displayRawText("CW Keyer...", 30, 140, DISPLAY_WHITE, DISPLAY_BLACK);
-  displayRawText("Touch Screen...", 30, 170, DISPLAY_WHITE, DISPLAY_BLACK);
-  displayRawText("Exit", 30, 200, DISPLAY_WHITE, DISPLAY_BLACK);
+  drawRawText("Set Freq...", 30, 50, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
+  drawRawText("Set BFO...", 30, 80, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
+  drawRawText("CW Delay...", 30, 110, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
+  drawRawText("CW Keyer...", 30, 140, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
+  drawRawText("Touch Screen...", 30, 170, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
+  drawRawText("Exit", 30, 200, G_DISPLAY_WHITE, G_DISPLAY_NEWBACK);
 }
-
 
 /* moves selection indicator */
-void movePuck(int16_t i) {
+static void movePuck (int16_t i)
+{
+  if (m_prevPuck >= 0)
+    drawRectNoFill(15, 45 + (m_prevPuck * 30), 290, 30, G_DISPLAY_BLACK);
 
-  if (prevPuck >= 0)
-    displayRect(15, 45 + (prevPuck * 30), 290, 30, DISPLAY_BLACK); // y was 49  // height was 25
+  drawRectNoFill(15, 45 + (i * 30), 290, 30, G_DISPLAY_WHITE);
 
-  displayRect(15, 45 + (i * 30), 290, 30, DISPLAY_WHITE);  // y was 49  // height was 25
-
-  prevPuck = i;
+  m_prevPuck = i;
 }
 
-
 /* displays radio's setup menu */
-void doSetupMenu() {
-
+void doSetupMenu ()
+{
   int16_t select = 0;
   int16_t i;
 
@@ -290,25 +288,39 @@ void doSetupMenu() {
 
   activeDelay(50);  // debounce
 
-  menuOn = true; //2;
+  g_menuOn = true;
 
-  while (menuOn) {
-
+  while (g_menuOn)
+  {
     i = encoderRead();
 
-    if (i > 0) {
-      if (select + i < 60)
-        select += i;
+    // ### historical code note ###
+    //
+    // *** The commented-out code directly below was the original code from Ashhar Farhan. I believe that it
+    // *** was incorrect because the movePuck() call should have been within brackets -- part of the 'if'
+    // *** statement. The corrected code matches the style and function of the next 'if' statement where the
+    // *** movePuck() call *was* in brackets
+    //
+    //  if (i > 0){
+    //    if (select + i < 60)  // <<<--- a start bracket should have followed this
+    //      select += i;
+    //      movePuck(select/10);  // <<<--- this line was indented in a confusing way
+    //  }  // <<<--- an end bracket should have preceded this
 
-      movePuck(select / 10);  // #### <<<--- indented as part of 'if' above originally, separated due to no brackets ####
+    // if there's an encoder change, change selection puck position
+    if (i > 0 && select + i < 60)
+    {
+      select += i;
+      movePuck(select / 10);
     }
-
-    if (i < 0 && select - i >= 0) {
-      select += i;      // caught ya, i is already -ve here, so you add it
+    else if (i < 0 && select - i >= 0)
+    {
+      select += i;
       movePuck(select / 10);
     }
 
-    if (!encoderButtonDown()) {
+    if (!encoderButtonDown())
+    {
       activeDelay(50);
       continue;
     }
@@ -319,6 +331,7 @@ void doSetupMenu() {
 
     activeDelay(300);
 
+    // run desired setup based on selection value
     if (select < 10)
       setupFreq();
     else if (select < 20 )
@@ -343,5 +356,6 @@ void doSetupMenu() {
 
   checkCAT();
 
-  guiUpdate(true, true);
+  // update screen, both clearing the screen and refreshing the vfos
+  guiUpdate(true, false);
 }

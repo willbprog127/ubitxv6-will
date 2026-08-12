@@ -7,59 +7,12 @@
 #ifndef _NANO_GUI_H_
 #define _NANO_GUI_H_
 
-/* UI functions */
+/* point struct */
 struct Point {
   int16_t x;
   int16_t y;
 };
-extern struct Point tsPoint;
-
-//
-
-/* Color definitions */
-#define DISPLAY_BLACK       0x0020  // 0x0000  // <   0,   0,   0
-#define DISPLAY_NAVY        0x000F  // <   0,   0, 123
-#define DISPLAY_DARKGREEN   0x03E0  // <   0, 125,   0
-#define DISPLAY_DARKCYAN    0x03EF  // <   0, 125, 123
-#define DISPLAY_MAROON      0x7800  // < 123,   0,   0
-#define DISPLAY_PURPLE      0x780F  // < 123,   0, 123
-#define DISPLAY_OLIVE       0x7BE0  // < 123, 125,   0
-#define DISPLAY_LIGHTGREY   0xC618  // < 198, 195, 198
-#define DISPLAY_DARKGREY    0x7BEF  // < 123, 125, 123
-#define DISPLAY_BLUE        0x001F  // <   0,   0, 255
-#define DISPLAY_GREEN       0x07E0  // <   0, 255,   0
-#define DISPLAY_CYAN        0x7EDB  //0x06DB  //0x07FF  // <   0, 255, 255
-#define DISPLAY_RED         0xF800  // < 255,   0,   0
-#define DISPLAY_MAGENTA     0xF81F  // < 255,   0, 255
-#define DISPLAY_YELLOW      0xFFE0  // < 255, 255,   0
-#define DISPLAY_WHITE       0xFFFF  // < 255, 255, 255
-#define DISPLAY_ORANGE      0xCC40  //0xFD20  // < 255, 165,   0
-#define DISPLAY_GREENYELLOW 0xAFE5  // < 173, 255,  41
-#define DISPLAY_PINK        0xFC18  // < 255, 130, 198
-#define DISPLAY_DIMGOLD     0x9C40  //0xBD20  //0xD689  //0xC66D  //0xE74E
-#define DISPLAY_WILLBACK    0x00C5  //0x10C4  //0x31C8  //0x0861  //0x0108  //0x0253
-#define DISPLAY_3DBOTTOM    0x4228  //0x52AA  //0x31A6
-
-
-void displayInit();
-void displayClear(uint16_t color);
-// void displayPixel(uint16_t x, uint16_t y, uint16_t color);  //  <<<--- not used...?
-void displayHline(uint16_t x, uint16_t y, uint16_t l, uint16_t color);
-void displayVline(uint16_t x, uint16_t y, uint16_t l, uint16_t color);
-void displayRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t hicolor, uint16_t lowcolor = 0);
-void displayFillrect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
-void displayChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg);
-int16_t displayTextExtent(const char * text);
-void displayRawText(const char * text, int x1, int y1, uint16_t color, uint16_t background);
-void displayText(const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h, uint16_t color, uint16_t background,
-    uint16_t borderhigh, uint16_t borderlow = 0);
-
-/* touch functions */
-bool readTouch();
-void doTouchCalibration();
-void scaleTouch(struct Point * p);
-
-const uint8_t textLineHeight = 18;   //  #define TEXT_LINE_HEIGHT 18
+extern struct Point g_tsPoint;
 
 /* Font data stored PER GLYPH */
 typedef struct {
@@ -71,19 +24,16 @@ typedef struct {
   int8_t   yOffset;          // < Y dist from cursor pos to UL corner
 } GFXglyph;
 
-
 /* Data stored for FONT AS A WHOLE */
 typedef struct {
   uint8_t  * bitmap;      // < Glyph bitmaps, concatenated
   GFXglyph * glyph;       // < Glyph array
   uint8_t   first;       // < ASCII extents (first char)
   uint8_t   last;        // < ASCII extents (last char)
-  // uint8_t   yAdvance;    // < Newline distance (y axis)  //  <<<--- not used, apparently
 } GFXfont;
 
-
 /* font bitmap data */
-const uint8_t font2Bitmaps[] PROGMEM = {
+static constexpr uint8_t font2Bitmaps[] PROGMEM = {
   0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF8, 0x1F, 0xF0, 0xCF, 0x3C, 0xF3,
   0xCF, 0x3C, 0xC0, 0x00, 0x61, 0x80, 0x1C, 0x70, 0x03, 0x8C, 0x00, 0x61,
   0x80, 0x1C, 0x70, 0x03, 0x8E, 0x00, 0x61, 0x81, 0xFF, 0xFF, 0x3F, 0xFF,
@@ -303,114 +253,145 @@ const uint8_t font2Bitmaps[] PROGMEM = {
   0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0xF0, 0x3E, 0x03, 0xC0, 0x70, 0x1C, 0x07,
   0x01, 0xC0, 0x70, 0x1C, 0x07, 0x01, 0xC0, 0x78, 0x07, 0xC1, 0xF1, 0xE0,
   0x70, 0x1C, 0x07, 0x01, 0xC0, 0x70, 0x1C, 0x07, 0x03, 0xC3, 0xF0, 0xF0,
-  0x00, 0x1F, 0x00, 0x5F, 0xF8, 0x7E, 0x0F, 0xFA, 0x00, 0xF8 };
-
+  0x00, 0x1F, 0x00, 0x5F, 0xF8, 0x7E, 0x0F, 0xFA, 0x00, 0xF8
+};
 
 /* font glyph data */
-const GFXglyph font2Glyphs[] PROGMEM = {
-  {     0,   1,   1,   8,    0,    0 },   // 0x20 ' '
-  {     1,   3,  20,   9,    3,  -19 },   // 0x21 '!'
-  {     9,   6,   7,   9,    1,  -18 },   // 0x22 '"'
-  {    15,  19,  20,  21,    1,  -19 },   // 0x23 '#'
-  {    63,  13,  24,  17,    1,  -21 },   // 0x24 '$'
-  {   102,  20,  20,  22,    1,  -19 },   // 0x25 '%'
-  {   152,  17,  20,  18,    1,  -19 },   // 0x26 '&'
-  {   195,   2,   7,   4,    1,  -18 },   // 0x27 '''
-  {   197,   5,  26,   8,    2,  -19 },   // 0x28 '('
-  {   214,   5,  26,   8,    1,  -19 },   // 0x29 ')'
-  {   231,  10,   9,  12,    1,  -19 },   // 0x2A '*'
-  {   243,  16,  16,  23,    3,  -15 },   // 0x2B '+'
-  {   275,   5,   8,   8,    2,   -3 },   // 0x2C ','
-  {   280,   7,   3,  11,    2,   -7 },   // 0x2D '-'
-  {   283,   3,   3,   8,    2,   -2 },   // 0x2E '.'
-  {   285,  12,  23,  12,    0,  -19 },   // 0x2F '/'
-  {   320,  14,  20,  17,    1,  -19 },   // 0x30 '0'
-  {   355,   7,  20,  17,    3,  -19 },   // 0x31 '1'
-  {   373,  13,  20,  17,    1,  -19 },   // 0x32 '2'
-  {   406,  13,  20,  17,    1,  -19 },   // 0x33 '3'
-  {   439,  15,  20,  17,    0,  -19 },   // 0x34 '4'
-  {   477,  14,  20,  17,    1,  -19 },   // 0x35 '5'
-  {   512,  13,  21,  17,    2,  -20 },   // 0x36 '6'
-  {   547,  14,  20,  17,    2,  -19 },   // 0x37 '7'
-  {   582,  13,  20,  17,    1,  -19 },   // 0x38 '8'
-  {   615,  13,  20,  17,    1,  -19 },   // 0x39 '9'
-  {   648,   3,  12,   9,    3,  -11 },   // 0x3A ':'
-  {   653,   6,  16,   9,    2,  -11 },   // 0x3B ';'
-  {   665,  16,  15,  23,    4,  -15 },   // 0x3C '<'
-  {   695,  16,   7,  23,    3,  -11 },   // 0x3D '='
-  {   709,  16,  15,  23,    4,  -15 },   // 0x3E '>'
-  {   739,   9,  20,  15,    3,  -19 },   // 0x3F '?'
-  {   762,  25,  24,  27,    1,  -19 },   // 0x40 '@'
-  {   837,  19,  20,  18,    0,  -19 },   // 0x41 'A'
-  {   885,  13,  20,  16,    2,  -19 },   // 0x42 'B'
-  {   918,  17,  20,  20,    1,  -19 },   // 0x43 'C'
-  {   961,  17,  20,  20,    2,  -19 },   // 0x44 'D'
-  {  1004,  11,  20,  15,    2,  -19 },   // 0x45 'E'
-  {  1032,  11,  20,  14,    2,  -19 },   // 0x46 'F'
-  {  1060,  20,  20,  22,    1,  -19 },   // 0x47 'G'
-  {  1110,  16,  20,  21,    2,  -19 },   // 0x48 'H'
-  {  1150,   3,  20,   8,    2,  -19 },   // 0x49 'I'
-  {  1158,   9,  20,  11,    0,  -19 },   // 0x4A 'J'
-  {  1181,  15,  20,  17,    2,  -19 },   // 0x4B 'K'
-  {  1219,  10,  20,  13,    2,  -19 },   // 0x4C 'L'
-  {  1244,  23,  20,  24,    0,  -19 },   // 0x4D 'M'
-  {  1302,  18,  20,  22,    2,  -19 },   // 0x4E 'N'
-  {  1347,  21,  20,  24,    1,  -19 },   // 0x4F 'O'
-  {  1400,  12,  20,  15,    2,  -19 },   // 0x50 'P'
-  {  1430,  22,  21,  24,    1,  -19 },   // 0x51 'Q'
-  {  1488,  13,  20,  15,    2,  -19 },   // 0x52 'R'
-  {  1521,  13,  20,  15,    0,  -19 },   // 0x53 'S'
-  {  1554,  13,  20,  14,    1,  -19 },   // 0x54 'T'
-  {  1587,  16,  20,  20,    2,  -19 },   // 0x55 'U'
-  {  1627,  17,  20,  17,    0,  -19 },   // 0x56 'V'
-  {  1670,  26,  20,  26,    0,  -19 },   // 0x57 'W'
-  {  1735,  16,  20,  16,    0,  -19 },   // 0x58 'X'
-  {  1775,  17,  20,  16,    0,  -19 },   // 0x59 'Y'
-  {  1818,  15,  20,  16,    0,  -19 },   // 0x5A 'Z'
-  {  1856,   5,  26,   8,    3,  -19 },   // 0x5B '['
-  {  1873,  12,  23,  12,    0,  -19 },   // 0x5C '\'
-  {  1908,   5,  26,   8,    1,  -19 },   // 0x5D ']'
-  {  1925,  16,   7,  27,    6,  -19 },   // 0x5E '^'
-  {  1939,  14,   2,  14,    0,    5 },   // 0x5F '_'
-  {  1943,   6,   4,  14,    3,  -18 },   // 0x60 '`'
-  {  1946,  13,  13,  16,    1,  -12 },   // 0x61 'a'
-  {  1968,  13,  21,  16,    2,  -20 },   // 0x62 'b'
-  {  2003,  10,  13,  12,    1,  -12 },   // 0x63 'c'
-  {  2020,  13,  21,  16,    1,  -20 },   // 0x64 'd'
-  {  2055,  13,  13,  15,    1,  -12 },   // 0x65 'e'
-  {  2077,   8,  21,   8,    0,  -20 },   // 0x66 'f'
-  {  2098,  13,  19,  16,    1,  -12 },   // 0x67 'g'
-  {  2129,  12,  21,  16,    2,  -20 },   // 0x68 'h'
-  {  2161,   4,  21,   7,    1,  -20 },   // 0x69 'i'
-  {  2172,   4,  27,   7,    1,  -20 },   // 0x6A 'j'
-  {  2186,  12,  21,  14,    2,  -20 },   // 0x6B 'k'
-  {  2218,   3,  21,   7,    2,  -20 },   // 0x6C 'l'
-  {  2226,  19,  13,  24,    2,  -12 },   // 0x6D 'm'
-  {  2257,  12,  13,  16,    2,  -12 },   // 0x6E 'n'
-  {  2277,  14,  13,  16,    1,  -12 },   // 0x6F 'o'
-  {  2300,  13,  19,  16,    2,  -12 },   // 0x70 'p'
-  {  2331,  13,  19,  16,    1,  -12 },   // 0x71 'q'
-  {  2362,   8,  13,  10,    2,  -12 },   // 0x72 'r'
-  {  2375,  10,  13,  12,    1,  -12 },   // 0x73 's'
-  {  2392,   7,  18,   8,    1,  -17 },   // 0x74 't'
-  {  2408,  12,  13,  16,    2,  -12 },   // 0x75 'u'
-  {  2428,  13,  13,  13,    0,  -12 },   // 0x76 'v'
-  {  2450,  21,  13,  21,    0,  -12 },   // 0x77 'w'
-  {  2485,  13,  13,  12,    0,  -12 },   // 0x78 'x'
-  {  2507,  13,  19,  13,    0,  -12 },   // 0x79 'y'
-  {  2538,  12,  13,  12,    0,  -12 },   // 0x7A 'z'
-  {  2558,  10,  25,  14,    2,  -19 },   // 0x7B '{'
-  {  2590,   2,  27,  14,    6,  -20 },   // 0x7C '|'
-  {  2597,  10,  25,  14,    2,  -19 },   // 0x7D '}'
-  {  2629,  18,   4,  23,    2,   -9 } }; // 0x7E '~'
+static constexpr GFXglyph font2Glyphs[] PROGMEM = {
+  {   0,   1,   1,   8,    0,    0},   // 0x20 ' '
+  {   1,   3,  20,   9,    3,  -19},   // 0x21 '!'
+  {   9,   6,   7,   9,    1,  -18},   // 0x22 '"'
+  {  15,  19,  20,  21,    1,  -19},   // 0x23 '#'
+  {  63,  13,  24,  17,    1,  -21},   // 0x24 '$'
+  { 102,  20,  20,  22,    1,  -19},   // 0x25 '%'
+  { 152,  17,  20,  18,    1,  -19},   // 0x26 '&'
+  { 195,   2,   7,   4,    1,  -18},   // 0x27 '''
+  { 197,   5,  26,   8,    2,  -19},   // 0x28 '('
+  { 214,   5,  26,   8,    1,  -19},   // 0x29 ')'
+  { 231,  10,   9,  12,    1,  -19},   // 0x2A '*'
+  { 243,  16,  16,  23,    3,  -15},   // 0x2B '+'
+  { 275,   5,   8,   8,    2,   -3},   // 0x2C ','
+  { 280,   7,   3,  11,    2,   -7},   // 0x2D '-'
+  { 283,   3,   3,   8,    2,   -2},   // 0x2E '.'
+  { 285,  12,  23,  12,    0,  -19},   // 0x2F '/'
+  { 320,  14,  20,  17,    1,  -19},   // 0x30 '0'
+  { 355,   7,  20,  17,    3,  -19},   // 0x31 '1'
+  { 373,  13,  20,  17,    1,  -19},   // 0x32 '2'
+  { 406,  13,  20,  17,    1,  -19},   // 0x33 '3'
+  { 439,  15,  20,  17,    0,  -19},   // 0x34 '4'
+  { 477,  14,  20,  17,    1,  -19},   // 0x35 '5'
+  { 512,  13,  21,  17,    2,  -20},   // 0x36 '6'
+  { 547,  14,  20,  17,    2,  -19},   // 0x37 '7'
+  { 582,  13,  20,  17,    1,  -19},   // 0x38 '8'
+  { 615,  13,  20,  17,    1,  -19},   // 0x39 '9'
+  { 648,   3,  12,   9,    3,  -11},   // 0x3A ':'
+  { 653,   6,  16,   9,    2,  -11},   // 0x3B ';'
+  { 665,  16,  15,  23,    4,  -15},   // 0x3C '<'
+  { 695,  16,   7,  23,    3,  -11},   // 0x3D '='
+  { 709,  16,  15,  23,    4,  -15},   // 0x3E '>'
+  { 739,   9,  20,  15,    3,  -19},   // 0x3F '?'
+  { 762,  25,  24,  27,    1,  -19},   // 0x40 '@'
+  { 837,  19,  20,  18,    0,  -19},   // 0x41 'A'
+  { 885,  13,  20,  16,    2,  -19},   // 0x42 'B'
+  { 918,  17,  20,  20,    1,  -19},   // 0x43 'C'
+  { 961,  17,  20,  20,    2,  -19},   // 0x44 'D'
+  {1004,  11,  20,  15,    2,  -19},   // 0x45 'E'
+  {1032,  11,  20,  14,    2,  -19},   // 0x46 'F'
+  {1060,  20,  20,  22,    1,  -19},   // 0x47 'G'
+  {1110,  16,  20,  21,    2,  -19},   // 0x48 'H'
+  {1150,   3,  20,   8,    2,  -19},   // 0x49 'I'
+  {1158,   9,  20,  11,    0,  -19},   // 0x4A 'J'
+  {1181,  15,  20,  17,    2,  -19},   // 0x4B 'K'
+  {1219,  10,  20,  13,    2,  -19},   // 0x4C 'L'
+  {1244,  23,  20,  24,    0,  -19},   // 0x4D 'M'
+  {1302,  18,  20,  22,    2,  -19},   // 0x4E 'N'
+  {1347,  21,  20,  24,    1,  -19},   // 0x4F 'O'
+  {1400,  12,  20,  15,    2,  -19},   // 0x50 'P'
+  {1430,  22,  21,  24,    1,  -19},   // 0x51 'Q'
+  {1488,  13,  20,  15,    2,  -19},   // 0x52 'R'
+  {1521,  13,  20,  15,    0,  -19},   // 0x53 'S'
+  {1554,  13,  20,  14,    1,  -19},   // 0x54 'T'
+  {1587,  16,  20,  20,    2,  -19},   // 0x55 'U'
+  {1627,  17,  20,  17,    0,  -19},   // 0x56 'V'
+  {1670,  26,  20,  26,    0,  -19},   // 0x57 'W'
+  {1735,  16,  20,  16,    0,  -19},   // 0x58 'X'
+  {1775,  17,  20,  16,    0,  -19},   // 0x59 'Y'
+  {1818,  15,  20,  16,    0,  -19},   // 0x5A 'Z'
+  {1856,   5,  26,   8,    3,  -19},   // 0x5B '['
+  {1873,  12,  23,  12,    0,  -19},   // 0x5C '\'
+  {1908,   5,  26,   8,    1,  -19},   // 0x5D ']'
+  {1925,  16,   7,  27,    6,  -19},   // 0x5E '^'
+  {1939,  14,   2,  14,    0,    5},   // 0x5F '_'
+  {1943,   6,   4,  14,    3,  -18},   // 0x60 '`'
+  {1946,  13,  13,  16,    1,  -12},   // 0x61 'a'
+  {1968,  13,  21,  16,    2,  -20},   // 0x62 'b'
+  {2003,  10,  13,  12,    1,  -12},   // 0x63 'c'
+  {2020,  13,  21,  16,    1,  -20},   // 0x64 'd'
+  {2055,  13,  13,  15,    1,  -12},   // 0x65 'e'
+  {2077,   8,  21,   8,    0,  -20},   // 0x66 'f'
+  {2098,  13,  19,  16,    1,  -12},   // 0x67 'g'
+  {2129,  12,  21,  16,    2,  -20},   // 0x68 'h'
+  {2161,   4,  21,   7,    1,  -20},   // 0x69 'i'
+  {2172,   4,  27,   7,    1,  -20},   // 0x6A 'j'
+  {2186,  12,  21,  14,    2,  -20},   // 0x6B 'k'
+  {2218,   3,  21,   7,    2,  -20},   // 0x6C 'l'
+  {2226,  19,  13,  24,    2,  -12},   // 0x6D 'm'
+  {2257,  12,  13,  16,    2,  -12},   // 0x6E 'n'
+  {2277,  14,  13,  16,    1,  -12},   // 0x6F 'o'
+  {2300,  13,  19,  16,    2,  -12},   // 0x70 'p'
+  {2331,  13,  19,  16,    1,  -12},   // 0x71 'q'
+  {2362,   8,  13,  10,    2,  -12},   // 0x72 'r'
+  {2375,  10,  13,  12,    1,  -12},   // 0x73 's'
+  {2392,   7,  18,   8,    1,  -17},   // 0x74 't'
+  {2408,  12,  13,  16,    2,  -12},   // 0x75 'u'
+  {2428,  13,  13,  13,    0,  -12},   // 0x76 'v'
+  {2450,  21,  13,  21,    0,  -12},   // 0x77 'w'
+  {2485,  13,  13,  12,    0,  -12},   // 0x78 'x'
+  {2507,  13,  19,  13,    0,  -12},   // 0x79 'y'
+  {2538,  12,  13,  12,    0,  -12},   // 0x7A 'z'
+  {2558,  10,  25,  14,    2,  -19},   // 0x7B '{'
+  {2590,   2,  27,  14,    6,  -20},   // 0x7C '|'
+  {2597,  10,  25,  14,    2,  -19},   // 0x7D '}'
+  {2629,  18,   4,  23,    2,   -9}    // 0x7E '~'
+};
 
 const GFXfont ubitxFont PROGMEM = {
-  (uint8_t  *)font2Bitmaps,
-  (GFXglyph *)font2Glyphs,
-  0x20,   // first
-  0x7E};  // last
-  // , 33 };  //  <<<--- yAdvance, not used, apparently
+    (uint8_t  *)font2Bitmaps,
+    (GFXglyph *)font2Glyphs,
+    0x20,   // first
+    0x7E    // last
+  };
 
 // Approx. 3310 bytes
+
+constexpr uint8_t G_TEXT_LINE_HEIGHT = 18;
+
+/* RGB565 color definitions */
+constexpr uint16_t G_DISPLAY_BLACK      = 0x0020;  // 0, 1, 0
+constexpr uint16_t G_DISPLAY_LIGHTGREY  = 0xC618;  // 198, 195, 198
+constexpr uint16_t G_DISPLAY_DARKGREY   = 0x7BEF;  // 15, 31, 15
+constexpr uint16_t G_DISPLAY_BLUE       = 0x001F;  // 0, 0, 31
+constexpr uint16_t G_DISPLAY_CYAN       = 0x7EDB;  // 15, 54, 27
+constexpr uint16_t G_DISPLAY_WHITE      = 0xFFFF;  // 31, 63, 31
+constexpr uint16_t G_DISPLAY_ORANGE     = 0xCC40;  // 25, 34, 0
+constexpr uint16_t G_DISPLAY_DIMGOLD    = 0x9C40;  // 19, 34, 0
+constexpr uint16_t G_DISPLAY_NEWBACK    = 0x00C5;  // 0, 6, 5
+constexpr uint16_t G_DISPLAY_3DBOTTOM   = 0x4228;  // 8, 17, 8
+
+/* display functions */
+void displayInit ();
+void displayClear (uint16_t color);
+void drawHLine (uint16_t x, uint16_t y, uint16_t l, uint16_t color);
+void drawRectNoFill (uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t hicolor, uint16_t lowcolor = 0);
+void drawRectFilled (uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+void displayChar (int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg);
+void drawRawText (const char * text, int x1, int y1, uint16_t color, uint16_t background);
+void drawTextWithRectFilled (const char * text, int16_t x1, int16_t y1, int16_t w, int16_t h, uint16_t color, uint16_t background,
+    uint16_t borderhigh, uint16_t borderlow = 0);
+
+/* touch functions */
+bool readTouch ();
+void doTouchCalibration ();
+void scaleTouch (struct Point * p);
 
 #endif // _NANO_GUI_H_
